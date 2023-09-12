@@ -7,26 +7,31 @@ const courseSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    
     name: {
       type: String,
       required: true,
     },
+
     description: {
       type: String,
       required: true,
     },
+
     images: {
       type: [String],
       required: false,
     },
+
     category: {
       type: String,
       required: true,
     },
+
     reviews: [
       {
         user: {
-          type: mongoose.Schema.ObjectId,
+          type: mongoose.Schema.Types.ObjectId,
           ref: "User",
           required: true,
         },
@@ -41,22 +46,27 @@ const courseSchema = new mongoose.Schema(
         },
       },
     ],
+
     fee: {
       type: Number,
       required: true,
     },
+
     numOfReviews: {
       type: Number,
       default: 0,
     },
+
     duration: {
       type: Number,
       required: true,
     },
+
     numOfSales: {
       type: Number,
       default: 0,
     },
+
     courseOutline: [
       {
         title: {
@@ -67,13 +77,21 @@ const courseSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
+
         topics: [
           {
             title: {
               type: String,
-              required: true, // Initialize as false by default
+              required: true, 
             },
+
+            isCompleted:{
+              type:Boolean,
+              default:false,
+            }
+
           },
+
         ],
       },
     ],

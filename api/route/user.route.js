@@ -9,6 +9,8 @@ const {
   getAllTeacher,
   getAllStudent,
   getNearestTeacher,
+  teacherDetail,
+  studentDetail,
 } = require("../controller/user.controller");
 const { isAdmin } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
@@ -33,6 +35,11 @@ userRouter.get("/nearest-teacher",getNearestTeacher)
 userRouter.get("/get-teachers", authentication, isAdmin, getAllTeacher);
 
 userRouter.get("/get-students", authentication, isAdmin, getAllStudent);
+
+userRouter.get("/teacher-detail",authentication,isAdmin,teacherDetail)
+
+userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
+
 
 
 // forgotpassword

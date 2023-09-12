@@ -132,9 +132,8 @@ const deleteAssignment = async (assignmentId) => {
 };
 const quizById = async (quizId) => {
   try {
-    const quiz = await Quiz.findById({ _id: quizId }).populate("courseId");
+    const quiz = await Quiz.findById({ _id: quizId });
 
-    // console.log(quiz);
 
     if (!quiz) {
       return {
@@ -145,7 +144,7 @@ const quizById = async (quizId) => {
 
     return {
       status: "SUCCESS",
-      quiz: quiz,
+      data: quiz,
     };
   } catch (error) {
     return {
@@ -234,14 +233,14 @@ const calculateScore = (questions, submittedAnswers) => {
 };
 const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   try {
-    const quiz = await Quiz.findOne({ _id: quizId });
+    // const quiz = await Quiz.findOne({ _id: quizId });
 
-    if (!quiz) {
-      return {
-        status: "FAILED",
-        message: "Quiz Not Found",
-      };
-    }
+    // if (!quiz) {
+    //   return {
+    //     status: "FAILED",
+    //     message: "Quiz Not Found",
+    //   };
+    // }
 
     const quizHistoryEntry = {
       quizId: quizId,

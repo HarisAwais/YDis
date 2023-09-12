@@ -25,7 +25,7 @@ const saveCourse = async (gigData) => {
   }
 };
 //get all gig
-const getAllGig = async () => {
+const getAllCourse = async () => {
   try {
     const gig = await Course.find().lean().exec();
 
@@ -51,11 +51,9 @@ const getAllGig = async () => {
 
 const getTeacherCourses = async (teacherId) => {
   try {
-    const course = await Course.find({ _id:teacherId })
-    .lean().
-    exec();
-    console.log(course)
-
+    const course = await Course.find({teacherId })
+    .lean()
+    .exec();
 
     if (course.length > 0) {
       return {
@@ -77,19 +75,18 @@ const getTeacherCourses = async (teacherId) => {
 };
 
 // get get by id
-const getGigById = async (_id) => {
+const getCourseById = async (_id) => {
   try {
-    const gig = await Course.findById(_id).lean().exec();
-    if (gig) {
+    const course = await Course.findById(_id).lean().exec();
+    if (course) {
       return {
         status: "SUCCESS",
-        data: gig,
+        data: course,
       };
     } else {
       return {
         status: "FAILED",
         message: "Course not found",
-        identifier: "03",
       };
     }
   } catch (error) {
@@ -101,8 +98,8 @@ const getGigById = async (_id) => {
   }
 };
 
-//update gig by id
-const updateGig = async (teacherId, gigId, updateData) => {
+//update course by id
+const updateCourse = async (teacherId, gigId, updateData) => {
   try {
     const updatedGig = await Course.findOneAndUpdate(
       { _id: gigId, teacherId },
@@ -163,10 +160,10 @@ const deleteGig = async (teacherId, gigId) => {
   }
 };
 
-const addNewReview = async (id, user, body) => {
-  const { rating, comment } = body.reviews;
+const addNewReview = async (_id, user, rating,comment) => {
+  // const { rating, comment } = body.reviews;
 
-  const updatedGig = await Course.findByIdAndUpdate(id, {
+  const updatedGig = await Course.findByIdAndUpdate(_id, {
     $push: { reviews: { user, rating, comment } },
   });
 
@@ -330,12 +327,11 @@ const getTopCourse = async () => {
 };
 module.exports = {
   saveCourse,
-  getAllGig,
+  getAllCourse,
   getTeacherCourses,
-  getGigById,
+  getCourseById,
   deleteGig,
-  updateGig,
-  updateGig,
+  updateCourse,
   updateExistingReview,
   addNewReview,
   deleteReview,

@@ -2,7 +2,7 @@ const Joi = require('joi');
 
 // Define the Joi schema for a course
 const courseValidationSchema = Joi.object({
-  teacherId: Joi.string().required(),
+  // teacherId: Joi.string().hex().length(24).required(),
   name: Joi.string().required(),
   description: Joi.string().required(),
   images: Joi.array().items(Joi.string()),

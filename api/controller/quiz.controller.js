@@ -39,24 +39,23 @@ const updateQuiz = async (req, res) => {
     const updateData = req.body;
 
     const quiz = await QuizModel.quizById(quizId);
-    // console.log(quiz)
-
-    //  console.log(String(quiz.createdBy) !== String(req.decodedToken._id))
-    // return
-    if (String(quiz.quiz?.createdBy) !== String(req.decodedToken._id)) {
+   
+    if (String(quiz?.data?.createdBy) !== String(req.decodedToken._id)) {
       return res.status(403).json({
         error: "Access denied. You are not the creator of this quiz.",
       });
     }
-    // return
+    
 
     const updateResult = await QuizModel.updateQuiz(quizId, updateData);
 
     if (updateResult.status === "SUCCESS") {
-      res.status(200).json(updateResult.data);
-    } else if (updateResult.status === "FAILED") {
+      res.status(200).json({data:updateResult.data});
+    } 
+    else if (updateResult.status === "FAILED") {
       res.status(404).json({ error: "Quiz not found" });
-    } else {
+    } 
+    else {
       res.status(500).json({ error: updateResult.error });
     }
   } catch (error) {
@@ -102,76 +101,21 @@ const deleteQuiz = async (req, res) => {
   }
 };
 
-//student submit exam
-// const submitQuiz = async (req, res) => {
-//   try {
-//     const quizId = req.params.quizId;
-//     const { answers } = req.body;
-//     const studentId = req.decodedToken._id;
-
-//     const quiz = await Quiz.findById(quizId);
-
-//     if (!quiz) {
-//       return res.status(404).send({
-//         message: "QUIZ NOT FOUND",
-//       });
-//     }
-
-//     const score = QuizModel.calculateScore(quiz.questions, answers);
-
-//     const studentSubmission = {
-//       studentId,
-//       answers: answers.map((selectedOption, questionIndex) => ({
-//         questionIndex,
-//         selectedOption: selectedOption.selectedOption,
-//       })),
-//       score: score.totalScore,
-//       submittedAt: new Date(),
-//     };
-   
-//     const submissionResult = await QuizModel.submitQuizToDB(
-//       studentId,
-//       quizId,
-//       studentSubmission.answers,
-//       studentSubmission.score
-//     );
 
 
-
-//     if (submissionResult.status === "SUCCESS") {
-//       return res.status(200).send({
-//         message: "Quiz submitted successfully",
-//         score: studentSubmission.score,
-//         submission: studentSubmission,
-//       });
-//     } else {
-//       return res.status(500).send({
-//         message: "Failed to submit quiz",
-//       });
-//     }
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send({
-//       message: "Internal server error",
-//     });
-//   }
-// };
 const submitQuiz = async (req, res) => {
   try {
-    const quizId = req.params.quizId;
+    const {quizId} = req.params;
     const { answers } = req.body;
     const studentId = req.decodedToken._id;
+   
+    const quiz = await QuizModel.quizById(quizId);
 
-    const quiz = await Quiz.findById(quizId);
+   
 
-    if (!quiz) {
-      return res.status(404).send({
-        message: "QUIZ NOT FOUND",
-      });
-    }
-
-    const score = QuizModel.calculateScore(quiz.questions, answers);
-
+    const score = QuizModel.calculateScore(quiz.data?.questions, answers);
+  // console.log(score)
+  // return
     const studentSubmission = {
       studentId,
       answers: answers.map((selectedOption, questionIndex) => ({

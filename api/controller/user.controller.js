@@ -5,8 +5,16 @@ const bcrypt = require("bcryptjs");
 
 const registerUser = async (req, res) => {
   try {
-
-    const { firstName, lastName, email, password, gender, experience, role,postCode } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      gender,
+      experience,
+      role,
+      postCode,
+    } = req.body;
     // Check if the provided role is valid
     if (!["STUDENT", "TEACHER", "ADMIN"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
@@ -24,7 +32,6 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-
     const newUser = {
       firstName,
       lastName,
@@ -34,7 +41,7 @@ const registerUser = async (req, res) => {
       role,
       isVerified: role === "TEACHER" ? false : true,
       session,
-      postCode
+      postCode,
     };
 
     // If the user is a teacher, add the experience field
@@ -46,7 +53,6 @@ const registerUser = async (req, res) => {
       }
       newUser.experience = experience;
     }
-
 
     const savedUser = await UserModel.saveUser(newUser);
 
@@ -146,11 +152,10 @@ const logoutUser = async (req, res) => {
 const getNearestTeacher = async (req, res) => {
   const { longitude, latitude } = req.query;
 
-
   try {
     const result = await UserModel.getNearestTeacher(longitude, latitude);
-    console.log(result)
-    return
+    console.log(result);
+    return;
 
     if (result.success === "SUCCESS") {
       return res.status(200).json({
@@ -174,8 +179,6 @@ const getNearestTeacher = async (req, res) => {
     });
   }
 };
-
-
 
 const verifyTeacher = async (req, res) => {
   try {
@@ -207,15 +210,15 @@ const getAllTeacher = async (req, res) => {
     const result = await UserModel.getTeachers("TEACHER");
 
     if (result.status === "SUCCESS") {
-      res.status(200).send({data:result.data});
+      res.status(200).send({ data: result.data });
     } else if (result.status === "NO_TEACHERS") {
       res.status(404).send(result);
     }
   } catch (error) {
     res.status(500).json({
-        status: "ERROR",
-        message: "An error occurred while fetching teachers.",
-      });
+      status: "ERROR",
+      message: "An error occurred while fetching teachers.",
+    });
   }
 };
 
@@ -224,7 +227,7 @@ const getAllStudent = async (req, res) => {
     const result = await UserModel.getStudents("STUDENT");
 
     if (result.status === "SUCCESS") {
-      res.status(200).json({data:result.data});
+      res.status(200).json({ data: result.data });
     } else if (result.status === "NO_TEACHERS") {
       res.status(404).json({
         message: "Sorry no student available",
@@ -232,9 +235,55 @@ const getAllStudent = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({
-        status: "ERROR",
-        message: "An error occurred while fetching teachers.",
+      status: "ERROR",
+      message: "An error occurred while fetching teachers.",
+    });
+  }
+};
+
+const teacherDetail = async (req, res) => {
+  try {
+    const teacherDetail = await UserModel.getTeacherDetail();
+
+    if (detailResult) {
+      return res.status(200).send({
+        status: "SUCCESS",
+        data: teacherDetail.data,
       });
+    } else {
+      return res.status(422).send({
+        status: "FAILED",
+        message: "OOPs! Sorry Something went wrong",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+const studentDetail = async (req, res) => {
+  try {
+    const studentResult = await UserModel.getStudentDetail();
+
+    if (studentResult.status === "SUCCESS") {
+      res.status(200).send({
+        data: studentResult.data,
+      });
+    } else {
+      res.status(404).send({
+        message: studentResult.message,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -246,5 +295,7 @@ module.exports = {
   verifyTeacher,
   getAllTeacher,
   getAllStudent,
-  getNearestTeacher
+  getNearestTeacher,
+  teacherDetail,
+  studentDetail,
 };

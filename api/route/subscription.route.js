@@ -2,10 +2,9 @@ const express = require("express");
 const {
   createSubscription,
   cancelSubscription,
-  getTeacherAppointments,
-  getStudentAppointments,
+  teacherSubscriptions,
+  studentSubscription,
   updateSubscriptionStatus,
-  markLessonCompleted,
   updateCourseStat,
 } = require("../controller/subscription.controller");
 const { isTeacher } = require("../middleware/authorization.middleware");
@@ -17,27 +16,29 @@ subscriptionRouter.post(
   "/create-subscription",
   authentication,
   createSubscription
-);
-
-subscriptionRouter.delete(
-  "/cancel-subscription/:subscriptionId",
-  authentication,
-  cancelSubscription
-),
+  );
+  
   subscriptionRouter.patch(
     "/update-subscription/:subscriptionId",
     updateSubscriptionStatus
   );
+  
+  subscriptionRouter.delete(
+    "/cancel-subscription/:subscriptionId",
+    authentication,
+    cancelSubscription
+    ),
+
 subscriptionRouter.get(
-  "/getTeacherAppointment",
+  "/teacher-subscription",
   authentication,
-  getTeacherAppointments
+  teacherSubscriptions
 );
 subscriptionRouter.get(
-  "/getStudentAppointment",
+  "/student-subscription",
   authentication,
-  getStudentAppointments
+  studentSubscription
 );
-subscriptionRouter.put("/subscriptions/:subscriptionId/courseStat/:moduleId/:topicId", authentication,isTeacher,updateCourseStat);
+subscriptionRouter.patch("/course-stat/:subscriptionId/mark-completed", updateCourseStat);
 
 module.exports = subscriptionRouter;

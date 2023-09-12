@@ -14,6 +14,7 @@ const {
 const quizRouter = express.Router();
 
 quizRouter.post("/create-quiz", authentication, isTeacher, createQuiz),
+
   quizRouter.patch(
     "/update-quiz/:quizId",
     authentication,
@@ -32,7 +33,7 @@ quizRouter.post("/create-quiz", authentication, isTeacher, createQuiz),
     isTeacher,
     deleteQuiz
   );
-quizRouter.patch("/submit-quiz/:quizId", authentication, submitQuiz);
+quizRouter.put("/submit-quiz/:quizId", authentication, submitQuiz);
 quizRouter.get("/get-quizez/:quizId", authentication, getStudentsTookQuiz);
 
 module.exports = quizRouter;

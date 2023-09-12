@@ -31,10 +31,25 @@ const subscriptionSchema = new mongoose.Schema(
       enum: ["PENDING", "COMPLETED", "ACTIVE"],
       required: true,
     },
-    completedTopic:[{
-      title: String, 
-      completed: Boolean, 
-    },
+    courseStat: [
+      {
+        moduleId: {
+          type: mongoose.Types.ObjectId,
+          required: true,
+        },
+        topics: [
+          {
+            topicId: {
+              type: mongoose.Types.ObjectId,
+              required: true,
+            },
+            isCompleted: {
+              type: Boolean,
+              default: false,
+            },
+          },
+        ],
+      },
     ],
     startDate: {
       type: Date,

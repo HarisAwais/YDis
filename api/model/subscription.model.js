@@ -1,16 +1,17 @@
 const Subscription = require("../schema/subcription.schema");
 const Course = require("../schema/course.schema");
+const moment = require("moment");
+const mongoose = require("mongoose")
 const zeroSetter = require("../helper/zeroSetter.helper");
-const createAppointment = async (appointmentData) => {
+const createSubscription = async (subscriptionData) => {
   try {
-    const appointment = new Subscription(appointmentData);
-    const savedAppointment = await appointment.save();
-    console.log(savedAppointment);
+    const subscription = new Subscription(subscriptionData);
+    const savedSubscription = await subscription.save();
 
-    if (savedAppointment) {
+    if (savedSubscription) {
       return {
         status: "SUCCESS",
-        data: savedAppointment,
+        data: savedSubscription,
       };
     } else {
       return {
@@ -24,6 +25,7 @@ const createAppointment = async (appointmentData) => {
     };
   }
 };
+
 
 const getSubscriptionById = async (_id) => {
   try {
@@ -47,49 +49,6 @@ const getSubscriptionById = async (_id) => {
   }
 };
 
-// const checkTimeSlotAvailability = async (courseId, startTime, endTime, startDate, endDate) => {
-//   try {
-//     const overlappingSubscriptions = await Subscription.find({
-//       _courseId: courseId,
-//       $and: [
-//         {
-//           $or: [
-//             {
-//               classStartTime: { $gte: startTime, $lt: endTime },
-//             },
-//             {
-//               classEndTime: { $gt: startTime, $lte: endTime },
-//             },
-//             {
-//               classStartTime: { $lt: startTime },
-//               classEndTime: { $gt: endTime },
-//             },
-//           ],
-//         },
-//         {
-//           $or: [
-//             {
-//               startDate: { $gte: startDate, $lt: endDate },
-//             },
-//             {
-//               endDate: { $gt: startDate, $lte: endDate },
-//             },
-//             {
-//               startDate: { $lt: startDate },
-//               endDate: { $gt: endDate },
-//             },
-//           ],
-//         },
-//       ],
-//       status: { $ne: "cancelled" },
-//     });
-
-//     return overlappingSubscriptions.length === 0;
-//   } catch (error) {
-//     console.error(error);
-//     return false;
-//   }
-// };
 
 const checkTimeSlotAvailability = async (
   _courseId,
@@ -109,9 +68,16 @@ const checkTimeSlotAvailability = async (
       ],
     });
 
-    console.log(overlappingSubscription);
-
-    return overlappingSubscription?.length ? true : false;
+    if (overlappingSubscription) {
+      return {
+        status: "FAILED",
+        description: "Slot has been taken",
+      };
+    } else {
+      return {
+        status: "SUCCESS",
+      };
+    }
   } catch (error) {
     console.error(error);
     return {
@@ -119,55 +85,14 @@ const checkTimeSlotAvailability = async (
       error: error.message,
     };
   }
-
-  // try {
-  //   console.log("Checking time slot availability...");
-
-  //   // Extract the time part from classStartTime and classEndTime
-  //   const requestedStartTime = moment(classStartTime).format('HH:mm');
-
-  //   const requestedEndTime = moment(classEndTime).format('HH:mm');
-
-  //   // Find any subscription for the same course that overlaps in time
-  //   const overlappingSubscription = await Subscription.findOne()
-
-  //   if (overlappingSubscription) {
-  //     // Check if the requested time overlaps with the existing subscription's time
-  //     const existingStartTime = moment(overlappingSubscription.classStartTime).format('HH:mm');
-  //     const existingEndTime = moment(overlappingSubscription.classEndTime).format('HH:mm');
-
-  //     if (
-  //       (requestedStartTime >= existingStartTime && requestedStartTime < existingEndTime) ||
-  //       (requestedEndTime > existingStartTime && requestedEndTime <= existingEndTime)
-  //     ) {
-  //       console.log("Slot not available.");
-  //       return {
-  //         status: "FAILED",
-  //         isSlotAvailable: false,
-  //       };
-  //     }
-  //   }
-
-  //   console.log("Slot available.");
-  //   return {
-  //     status: "SUCCESS",
-  //     isSlotAvailable: true,
-  //   };
-  // } catch (error) {
-  //   console.error(error);
-  //   return {
-  //     status: "INTERNAL_SERVER_ERROR",
-  //     error: error.message,
-  //   };
-  // }
 };
 
-const calculateCourseDuration = async (courseId) => {
-  try {
-    // console.log(courseId);
-    const course = await Course.findById(courseId);
 
-    // console.log(course);
+const calculateCourseDuration = async (_id) => {
+  try {
+    console.log(_id);
+    const course = await Course.findById(_id);
+
     if (!course) {
       return {
         status: "COURSE_NOT_FOUND",
@@ -190,7 +115,8 @@ const calculateCourseDuration = async (courseId) => {
   }
 };
 
-const subscriptionFindByIdAndRemove = async (subscriptionId) => {
+
+const cancelSubscription = async (subscriptionId) => {
   try {
     const subscription = await Subscription.findById(subscriptionId)
       .lean()
@@ -208,6 +134,7 @@ const subscriptionFindByIdAndRemove = async (subscriptionId) => {
     return { status: "INTERNAL_SERVER_ERROR" };
   }
 };
+
 
 const updateSubscription = async (subscriptionId, update, options) => {
   try {
@@ -238,25 +165,60 @@ const updateSubscription = async (subscriptionId, update, options) => {
   }
 };
 
-const getTeacherAppointments = async (teacherId) => {
+
+const teacherSubscriptions = async (teacherId) => {
   try {
+
+    const currentDate = new Date();
+    const teacherSubscriptions = await Subscription.aggregate([
+      {
+        $lookup: {
+          from: "courses",
+          localField: "_courseId",
+          foreignField: "_id",
+          as: "course"
+        }
+      },
+      {
+        $unwind: "$course"
+      },
+      {
+        $match: {
+          "course.teacherId": new mongoose.Types.ObjectId(teacherId),
+          startDate: { $lte: currentDate },
+          endDate: { $gte: currentDate }
+        }
+      },
+      {
+        $project: {
+          _id: 0, // Exclude the _id field if you don't need it
+          classStartTime: 1,
+          classEndTime: 1,
+          startDate: 1,
+          endDate: 1
+        }
+      }
+    ]);
     
 
-    const teacherAppointments = await Subscription.find({
-    "_courseId.teacherId": teacherId,
-  }).lean().exec()
-
-    return teacherAppointments;
+    if (teacherSubscriptions.length > 0) {
+      return { status: "SUCCESS" ,data:teacherSubscriptions};
+    } else {
+      return { status: "FAILED" };
+    }
   } catch (error) {
-    throw new Error("Error fetching teacher appointments.");
+    console.log(error);
+    return {
+      error: error.message
+    };
   }
 };
 
-const studentAppointments = async (studentId) => {
+
+const studentAppointments = async (_studentId) => {
   try {
-    console.log(studentId);
     const studentAppointments = await Subscription.find({
-      _studentId: studentId,
+      _studentId,
     })
       .lean()
       .exec();
@@ -278,51 +240,72 @@ const studentAppointments = async (studentId) => {
     };
   }
 };
-const blockSlotsDuringCourse = async (courseId, startDate, endDate) => {
+
+
+const completedTopics = async (
+  subscriptionId,
+  moduleId,
+  topicId,
+  isCompleted
+) => {
   try {
-    // Find all subscriptions for the course that fall within the course duration
-    const overlappingSubscriptions = await Subscription.find({
-      _courseId: courseId,
-      classStartTime: { $gte: startDate, $lt: endDate },
-      status: { $in: ["approved", "active"] },
-    }).exec();
+    const subscriptionResult  = await Subscription.findById(subscriptionId);
 
-    // Loop through each overlapping subscription and mark slots as blocked
-    for (const subscription of overlappingSubscriptions) {
-      const { classStartTime, classEndTime } = subscription;
-
-      // Assuming there's a slot schema with a reference to the subscription
-      // You need to update your actual schema and logic accordingly
-      const slotsToUpdate = await Slot.find({
-        subscription: subscription._id,
-        startTime: { $gte: classStartTime, $lt: classEndTime },
-      }).exec();
-
-      for (const slot of slotsToUpdate) {
-        slot.status = "blocked";
-        await slot.save();
-      }
+    if (!subscriptionResult) {
+      return { status: "FAILED", message: "Subscription not found" };
     }
+
+    let targetModule = subscriptionResult.courseStat.find(
+      (module) => module.moduleId.toString() === moduleId
+    );
+
+
+    if (!targetModule) {
+      return { status: "FAILED", message: "Module not found in subscription." };
+    }
+
+    if (topicId) {
+      const topic = targetModule.topics.find(
+        (topic) => topic.topicId.toString() === topicId
+      );
+      if (!topic) {
+        return { status: "FAILED", message: "Topic not found in module." };
+      }
+
+      topic.isCompleted = isCompleted;
+    } else {
+      return{
+     status:"FAILED",
+     message:"OOPS! Something went wrong"
+    }
+
+    }
+
+    await subscriptionResult.save();
 
     return {
       status: "SUCCESS",
+      message: "Module/Topic marked as completed in subscription.",
+      data: subscriptionResult,
     };
   } catch (error) {
+    console.log(error)
     return {
-      status: "INTERNAL_SERVER_ERROR",
-      error: error.message,
+      status: "FAILED",
+      message: "An error occurred while marking the module/topic as completed.",
     };
   }
 };
 
+
 module.exports = {
-  createAppointment,
+  createSubscription,
   getSubscriptionById,
   checkTimeSlotAvailability,
-  subscriptionFindByIdAndRemove,
+  cancelSubscription,
   updateSubscription,
-  getTeacherAppointments,
+  teacherSubscriptions,
   studentAppointments,
   calculateCourseDuration,
-  blockSlotsDuringCourse,
+  completedTopics,
 };

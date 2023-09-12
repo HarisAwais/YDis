@@ -51,13 +51,10 @@ const createCourse = async (req, res) => {
 const getTeacherCourses = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
-    console.log("course teacherid",teacherId)
-
     const course = await CourseModel.getTeacherCourses(teacherId);
 
-    console.log(course)
-    return
-    if (course.status === "SUCCESS") {
+  
+    if (course) {
       return res.status(200).send({
         message: course.status,
         data: course.data,
@@ -83,21 +80,21 @@ const getTeacherCourses = async (req, res) => {
 
 const getAllCourse = async (req, res) => {
   try {
-    const gig = await CourseModel.getAllGig();
-    if (gig.status === "SUCCESS") {
+    const course = await CourseModel.getAllCourse();
+    if (course) {
       return res.status(200).send({
-        message: gig.status,
-        data: gig.data,
+        message: course.status,
+        data: course.data,
       });
-    } else if (gig.status === "FAILED") {
+    } else if (course.status === "FAILED") {
       return res.status(400).json({
-        message: gig.status,
+        message: course.status,
         description: "No Gig found",
       });
     } else {
       return res.status(400).json({
-        message: gig.status,
-        error: gig.error,
+        message: course.status,
+        error: course.error,
       });
     }
   } catch (error) {
@@ -108,19 +105,19 @@ const getAllCourse = async (req, res) => {
   }
 };
 
-const getSingleGig = async (req, res) => {
+const getSingleCourse = async (req, res) => {
   try {
-    const { gigId } = req.params;
-    const gig = await CourseModel.getGigById(gigId);
-    if (gig) {
+    const { courseId } = req.params;
+    const course = await CourseModel.getCourseById(courseId);
+    if (course) {
       return res.status(200).send({
         message: "SUCCESS",
-        data: gig,
+        data: course,
       });
     } else {
       return res.status(404).send({
         message: "FAILED",
-        description: "GIG NOT FOUND",
+        description: "Course NOT FOUND",
       });
     }
   } catch (error) {
@@ -135,11 +132,7 @@ const deleteCourse = async (req, res) => {
     const { gigId } = req.params;
     const teacherId = req.decodedToken._id;
 
-    // console.log("gigId:", gigId);
-    // console.log("teacherId:", teacherId);
-
     const deleteResult = await CourseModel.deleteGig(teacherId, gigId);
-    // console.log(deleteResult);
 
     if (deleteResult.status === "SUCCESS") {
       return res.status(200).json({
@@ -166,18 +159,18 @@ const deleteCourse = async (req, res) => {
 
 const updateCourse = async (req, res) => {
   try {
-    const { gigId } = req.params;
+    const { courseId } = req.params;
     const teacherId = req.decodedToken._id;
-    const gigUpdateData = req.body;
-    console.log(gigId);
+    const courseUpdateData = req.body;
+    
 
-    const updateResult = await CourseModel.updateGig(
+    const updateResult = await CourseModel.updateCourse(
       teacherId,
-      gigId,
-      gigUpdateData
+      courseId,
+      courseUpdateData
     );
 
-    if (updateResult.status === "SUCCESS") {
+    if (updateResult) {
       return res.status(200).json({
         message: updateResult.message,
         data: updateResult.data,
@@ -185,7 +178,7 @@ const updateCourse = async (req, res) => {
     } else if (updateResult.status === "FAILED") {
       return res.status(404).json({
         message: "Course not found",
-        identifier: "02",
+        
       });
     } else {
       return res.status(500).json({
@@ -204,19 +197,25 @@ const updateCourse = async (req, res) => {
 //create gig review
 const createReview = async (req, res) => {
   try {
-    const { gigId } = req.params;
+    const { courseId } = req.params;
     const { _id } = req.decodedToken;
+    const {rating,comment}= req.body
 
-    const isGigExist = await CourseModel.getGigById(gigId);
+    // console.log(courseId)
+    // console.log(_id),
+    // console.log(rating,comment)
+    // return
+
+    const isGigExist = await CourseModel.getCourseById(courseId);
 
     if (isGigExist.status !== "SUCCESS") {
       return res
         .status(404)
-        .send({ message: "FAILED", description: "Gig not found" });
+        .send({ message: "FAILED", description: "Course not found" });
     }
 
-    const isReviewExist = isGigExist.data.reviews.some((review) => {
-      // console.log(review.user.toString(), _id);
+    const isReviewExist = isGigExist.data?.reviews.some((review) => {
+      console.log(review.user.toString(), _id);
       return review.user.toString() === _id;
     });
 
@@ -225,7 +224,7 @@ const createReview = async (req, res) => {
     if (isReviewExist) {
       updatedGig = await CourseModel.updateExistingReview(gigId, _id, req.body);
     } else {
-      updatedGig = await CourseModel.addNewReview(gigId, _id, req.body);
+      updatedGig = await CourseModel.addNewReview(courseId, _id, rating,comment);
     }
 
     res.status(201).send({ message: "SUCCESS", data: updatedGig.data });
@@ -236,21 +235,31 @@ const createReview = async (req, res) => {
 };
 
 //get gig review
-const getGigReview = async (req, res) => {
+const getCourseReviews = async (req, res) => {
   try {
-    const { gigId } = req.params;
+    const { courseId } = req.params;
 
-    const gig = await CourseModel.getGigById(gigId);
-    if (gig.status !== "SUCCESS") {
-      return res
-        .status(404)
-        .send({ message: "FAILED", description: "Gig not found" });
+    // console.log(courseId)
+    // return
+
+    const course = await CourseModel.getCourseById(courseId);
+    if (course) {
+
+      return res.status(200).send({
+        message: "SUCCESS",
+        data: course.data?.reviews,
+      });
+
+    
     }
 
-    return res.status(200).send({
-      message: "SUCCESS",
-      data: gig.data.reviews,
-    });
+    else {
+      return res
+      .status(404)
+      .send({ message: "FAILED", description: "Course not found" });
+    }
+
+   
   } catch (error) {
     console.log(error);
     return res.status(500).send({ message: "Oops! Something went wrong." });
@@ -260,10 +269,10 @@ const getGigReview = async (req, res) => {
 // Delete Review
 const deleteReview = async (req, res) => {
   try {
-    const { gigId } = req.params;
+    const { courseId } = req.params;
     const { _id } = req.decodedToken;
 
-    const deleteResult = await CourseModel.deleteReview(gigId, _id);
+    const deleteResult = await CourseModel.deleteReview(courseId, _id);
     if (deleteResult) {
       return res.status(200).json({
         message: "SUCCESS",
@@ -345,11 +354,11 @@ module.exports = {
   createCourse,
   getAllCourse,
   getTeacherCourses,
-  getSingleGig,
+  getSingleCourse,
   deleteCourse,
   updateCourse,
   createReview,
-  getGigReview,
+  getCourseReviews,
   deleteReview,
   courseCount,
   courseList,
