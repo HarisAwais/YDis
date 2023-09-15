@@ -15,10 +15,7 @@ const registerUser = async (req, res) => {
       role,
       postCode,
     } = req.body;
-    // Check if the provided role is valid
-    if (!["STUDENT", "TEACHER", "ADMIN"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role" });
-    }
+
 
     const userFound = await UserModel.getUserByEmail(email);
 

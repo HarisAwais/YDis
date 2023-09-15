@@ -40,9 +40,4 @@ userRouter.get("/teacher-detail",authentication,isAdmin,teacherDetail)
 
 userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
 
-
-
-// forgotpassword
-// userRouter.get("/getAllTeacher", authentication, isAdmin, listTeachers)
-
 module.exports = userRouter;

@@ -6,7 +6,7 @@ const formidable = require("express-formidable");
 const {
   createQuiz,
   updateQuiz,
-  getAllQuizzesTeacher,
+  teacherQuizez,
   deleteQuiz,
   submitQuiz,
   getStudentsTookQuiz,
@@ -25,7 +25,7 @@ quizRouter.post("/create-quiz", authentication, isTeacher, createQuiz),
     "/getAllQuiz",
     authentication,
     isTeacher,
-    getAllQuizzesTeacher
+    teacherQuizez
   ),
   quizRouter.delete(
     "delete-quiz/:quizId",

@@ -1,16 +1,17 @@
 const QuizModel = require("../model/quiz.model");
 const Quiz = require("../schema/quiz.schema");
-const User = require("../schema/user.schema")
-const Course = require("../schema/course.schema")
+const User = require("../schema/user.schema");
+const Course = require("../schema/course.schema");
 const UserModel = require("../model/user.model");
-const { generateCertificatePdf, calculateScorePercentage } = require("../helper/generatePdf.helper");
+const {
+  generateCertificatePdf,
+  calculateScorePercentage,
+} = require("../helper/generatePdf.helper");
 
 const createQuiz = async (req, res) => {
   try {
     const { title, courseId, questions, startTime, endTime } = req.body;
-    const teacherId = req.decodedToken._id; // Assuming you're using JWT or similar for authentication
-
-    // Create the quiz object
+    const teacherId = req.decodedToken._id;
     const newQuiz = {
       title,
       courseId,
@@ -39,23 +40,20 @@ const updateQuiz = async (req, res) => {
     const updateData = req.body;
 
     const quiz = await QuizModel.quizById(quizId);
-   
+
     if (String(quiz?.data?.createdBy) !== String(req.decodedToken._id)) {
       return res.status(403).json({
         error: "Access denied. You are not the creator of this quiz.",
       });
     }
-    
 
     const updateResult = await QuizModel.updateQuiz(quizId, updateData);
 
     if (updateResult.status === "SUCCESS") {
-      res.status(200).json({data:updateResult.data});
-    } 
-    else if (updateResult.status === "FAILED") {
+      res.status(200).json({ data: updateResult.data });
+    } else if (updateResult.status === "FAILED") {
       res.status(404).json({ error: "Quiz not found" });
-    } 
-    else {
+    } else {
       res.status(500).json({ error: updateResult.error });
     }
   } catch (error) {
@@ -63,14 +61,11 @@ const updateQuiz = async (req, res) => {
   }
 };
 
-// quizz which teacher will create
-const getAllQuizzesTeacher = async (req, res) => {
+const teacherQuizez = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
 
     const getAllQuizzesResult = await QuizModel.getAllQuiz(teacherId);
-    // console.log(getAllQuizzesResult)
-    // return
 
     if (getAllQuizzesResult.status === "SUCCESS") {
       res.status(200).json(getAllQuizzesResult.data);
@@ -87,7 +82,6 @@ const getAllQuizzesTeacher = async (req, res) => {
 // teacher will delete quiz
 const deleteQuiz = async (req, res) => {
   try {
-    // Validate token and check permission
     const user = req.decodedToken._id;
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -101,21 +95,16 @@ const deleteQuiz = async (req, res) => {
   }
 };
 
-
-
 const submitQuiz = async (req, res) => {
   try {
-    const {quizId} = req.params;
+    const { quizId } = req.params;
     const { answers } = req.body;
     const studentId = req.decodedToken._id;
-   
+
     const quiz = await QuizModel.quizById(quizId);
 
-   
-
     const score = QuizModel.calculateScore(quiz.data?.questions, answers);
-  // console.log(score)
-  // return
+
     const studentSubmission = {
       studentId,
       answers: answers.map((selectedOption, questionIndex) => ({
@@ -133,46 +122,7 @@ const submitQuiz = async (req, res) => {
       studentSubmission.score
     );
 
-    if (submissionResult.status === "SUCCESS") {
-
-      
-
-      // Check if the student's score meets the criteria to generate a certificate
-        const student = await User.findById(studentId).lean().exec();
-        const teacher = await User.findById(quiz.createdBy).lean().exec();
-        const course = await Course.findById(quiz.courseId).lean().exec();
-
-        if (student && teacher && course) {
-          const studentName = `${student.firstName} ${student.secondName}`;
-          const teacherName = `${teacher.firstName} ${teacher.secondName}`;
-          const courseName = course.name;
-          const completionDate = new Date().toDateString(); // You can modify this as needed
-          // console.log(completionDate)
-          // return
-
-          // Generate the certificate PDF and save it with a filename
-          const pdfFilename = `${studentName}_Certificate.pdf`;
-          // console.log(pdfFilename)
-          // return
-
-          await generateCertificatePdf(
-            studentName,
-            teacherName,
-            courseName,
-            completionDate,
-            pdfFilename
-          );
-
-          // Here you can send the certificate PDF via email to the student or take other actions as needed
-
-          return res.status(200).send({
-            message: "Quiz submitted successfully, certificate generated and sent.",
-            score: studentSubmission.score,
-            submission: studentSubmission,
-          });
-        }
-      
-
+    if (submissionResult.status == "SUCCESS") {
       return res.status(200).send({
         message: "Quiz submitted successfully",
         score: studentSubmission.score,
@@ -190,8 +140,6 @@ const submitQuiz = async (req, res) => {
     });
   }
 };
-
-
 
 //teacher get student who took exam
 
@@ -249,7 +197,7 @@ const getStudentsTookQuiz = async (req, res) => {
 module.exports = {
   createQuiz,
   updateQuiz,
-  getAllQuizzesTeacher,
+  teacherQuizez,
   deleteQuiz,
   getStudentsTookQuiz,
   submitQuiz,

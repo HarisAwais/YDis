@@ -6,7 +6,6 @@ const ObjectId = mongoose.Types.ObjectId;
 const savedQuiz = async (assignmentData) => {
   try {
     const quiz = new Quiz(assignmentData);
-    // console.log(quiz)
 
     const savedQuiz = await quiz.save();
 
@@ -32,7 +31,7 @@ const updateQuiz = async (assignmentId, updateData) => {
     const updatedAssignment = await Quiz.findByIdAndUpdate(
       assignmentId,
       updateData,
-      { new: true } // Return the updated document
+      { new: true } 
     );
 
     if (updatedAssignment) {
@@ -233,15 +232,7 @@ const calculateScore = (questions, submittedAnswers) => {
 };
 const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   try {
-    // const quiz = await Quiz.findOne({ _id: quizId });
-
-    // if (!quiz) {
-    //   return {
-    //     status: "FAILED",
-    //     message: "Quiz Not Found",
-    //   };
-    // }
-
+   
     const quizHistoryEntry = {
       quizId: quizId,
       studentId,
