@@ -1,7 +1,7 @@
 const Subscription = require("../schema/subcription.schema");
 const Course = require("../schema/course.schema");
 const moment = require("moment");
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 const zeroSetter = require("../helper/zeroSetter.helper");
 const createSubscription = async (subscriptionData) => {
   try {
@@ -26,7 +26,6 @@ const createSubscription = async (subscriptionData) => {
   }
 };
 
-
 const getSubscriptionById = async (_id) => {
   try {
     const subscriptionFound = await Subscription.findById(_id).lean().exec();
@@ -48,7 +47,6 @@ const getSubscriptionById = async (_id) => {
     };
   }
 };
-
 
 const checkTimeSlotAvailability = async (
   _courseId,
@@ -87,7 +85,6 @@ const checkTimeSlotAvailability = async (
   }
 };
 
-
 const calculateCourseDuration = async (_id) => {
   try {
     console.log(_id);
@@ -115,26 +112,34 @@ const calculateCourseDuration = async (_id) => {
   }
 };
 
-
 const cancelSubscription = async (subscriptionId) => {
   try {
     const subscription = await Subscription.findById(subscriptionId)
       .lean()
       .exec();
 
-    if (subscription.status !== "pending") {
-      return { status: "SUBSCRIPTION_NOT_CANCELLABLE" };
+    if (!subscription) {
+      return { status: "FAILED", message: "Subscription not found" };
     }
 
-    await Subscription.findByIdAndRemove(subscriptionId);
+    if (subscription.status == "ACTIVE") {
+      return { status: "SORRY:Your Subscription is active" };
+    }
 
-    return { status: "SUCCESS", subscription: subscription };
+    const cancelSubscription = await Subscription.findByIdAndRemove(
+      subscriptionId
+    );
+
+    if (!cancelSubscription) {
+      return { status: "FAILED", message: "Failed to cancel subscription" };
+    } else {
+      return { status: "SUCCESS", message: "Subscription cancelled" };
+    }
   } catch (error) {
     console.error(error);
-    return { status: "INTERNAL_SERVER_ERROR" };
+    return { status: "SORRY: Something went wrong" };
   }
 };
-
 
 const updateSubscription = async (subscriptionId, update, options) => {
   try {
@@ -165,10 +170,8 @@ const updateSubscription = async (subscriptionId, update, options) => {
   }
 };
 
-
 const teacherSubscriptions = async (teacherId) => {
   try {
-
     const currentDate = new Date();
     const teacherSubscriptions = await Subscription.aggregate([
       {
@@ -176,18 +179,18 @@ const teacherSubscriptions = async (teacherId) => {
           from: "courses",
           localField: "_courseId",
           foreignField: "_id",
-          as: "course"
-        }
+          as: "course",
+        },
       },
       {
-        $unwind: "$course"
+        $unwind: "$course",
       },
       {
         $match: {
           "course.teacherId": new mongoose.Types.ObjectId(teacherId),
           startDate: { $lte: currentDate },
-          endDate: { $gte: currentDate }
-        }
+          endDate: { $gte: currentDate },
+        },
       },
       {
         $project: {
@@ -195,25 +198,23 @@ const teacherSubscriptions = async (teacherId) => {
           classStartTime: 1,
           classEndTime: 1,
           startDate: 1,
-          endDate: 1
-        }
-      }
+          endDate: 1,
+        },
+      },
     ]);
-    
 
     if (teacherSubscriptions.length > 0) {
-      return { status: "SUCCESS" ,data:teacherSubscriptions};
+      return { status: "SUCCESS", data: teacherSubscriptions };
     } else {
       return { status: "FAILED" };
     }
   } catch (error) {
     console.log(error);
     return {
-      error: error.message
+      error: error.message,
     };
   }
 };
-
 
 const studentAppointments = async (_studentId) => {
   try {
@@ -241,7 +242,6 @@ const studentAppointments = async (_studentId) => {
   }
 };
 
-
 const completedTopics = async (
   subscriptionId,
   moduleId,
@@ -249,7 +249,7 @@ const completedTopics = async (
   isCompleted
 ) => {
   try {
-    const subscriptionResult  = await Subscription.findById(subscriptionId);
+    const subscriptionResult = await Subscription.findById(subscriptionId);
 
     if (!subscriptionResult) {
       return { status: "FAILED", message: "Subscription not found" };
@@ -258,7 +258,6 @@ const completedTopics = async (
     let targetModule = subscriptionResult.courseStat.find(
       (module) => module.moduleId.toString() === moduleId
     );
-
 
     if (!targetModule) {
       return { status: "FAILED", message: "Module not found in subscription." };
@@ -274,29 +273,30 @@ const completedTopics = async (
 
       topic.isCompleted = isCompleted;
     } else {
-      return{
-     status:"FAILED",
-     message:"OOPS! Something went wrong"
+      return {
+        status: "FAILED",
+        message: "OOPS! Something went wrong",
+      };
     }
 
+    const courseStat = await subscriptionResult.save();
+    if (courseStat) {
+      return {
+        status: "SUCCESS",
+        message: "Topic marked as completed in subscription.",
+        data: subscriptionResult,
+      };
+    } else {
+      return { status: "FAILED" };
     }
-
-    await subscriptionResult.save();
-
-    return {
-      status: "SUCCESS",
-      message: "Module/Topic marked as completed in subscription.",
-      data: subscriptionResult,
-    };
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return {
       status: "FAILED",
       message: "An error occurred while marking the module/topic as completed.",
     };
   }
 };
-
 
 module.exports = {
   createSubscription,

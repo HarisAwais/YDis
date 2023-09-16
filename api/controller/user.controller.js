@@ -41,15 +41,6 @@ const registerUser = async (req, res) => {
       postCode,
     };
 
-    // If the user is a teacher, add the experience field
-    if (role === "TEACHER") {
-      if (!experience) {
-        return res
-          .status(400)
-          .json({ message: "Experience is required for teacher role" });
-      }
-      newUser.experience = experience;
-    }
 
     const savedUser = await UserModel.saveUser(newUser);
 
@@ -76,7 +67,6 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find the user by email
     const userFound = await UserModel.getUserByEmail(email);
 
     if (userFound.status !== "SUCCESS") {
@@ -91,7 +81,6 @@ const loginUser = async (req, res) => {
       // Generate a new session string
       const sessionString = generateSession();
 
-      // Update the session in the database
       const updatedUser = await UserModel.setSessionString(
         userFound.data._id,
         sessionString
@@ -194,7 +183,7 @@ const verifyTeacher = async (req, res) => {
     if (updateTeacher.status === "SUCCESS") {
       res.status(200).json({ message: "Teacher verified successfully" });
     } else {
-      res.status(500).json({ message: "Not verified Teacher" });
+      res.status(500).json({ message: "Teacher Not verified " });
     }
   } catch (error) {
     console.error(error);
@@ -209,12 +198,12 @@ const getAllTeacher = async (req, res) => {
     if (result.status === "SUCCESS") {
       res.status(200).send({ data: result.data });
     } else if (result.status === "NO_TEACHERS") {
-      res.status(404).send(result);
+      res.status(404).send({error:"OOPS!Sorry Something went wrong"});
     }
   } catch (error) {
     res.status(500).json({
       status: "ERROR",
-      message: "An error occurred while fetching teachers.",
+      message: "OOPS!Sorry Something went wrong.",
     });
   }
 };
@@ -233,7 +222,7 @@ const getAllStudent = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       status: "ERROR",
-      message: "An error occurred while fetching teachers.",
+      message: "OOPS!Sorry Something went wrong.",
     });
   }
 };
@@ -256,7 +245,7 @@ const teacherDetail = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "OOPS!Sorry Something went wrong",
       error: error.message,
     });
   }
@@ -278,7 +267,7 @@ const studentDetail = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "OOPS!Sorry Something went wrong",
       error: error.message,
     });
   }

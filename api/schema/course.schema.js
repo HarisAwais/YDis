@@ -62,9 +62,8 @@ const courseSchema = new mongoose.Schema(
       required: true,
     },
 
-    numOfSales: {
-      type: Number,
-      default: 0,
+    stripeProductId: {
+      type: String,
     },
 
     courseOutline: [

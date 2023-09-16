@@ -5,11 +5,9 @@ const {
   deleteCourse,
   createReview,
   getSingleCourse,
-  getGigReview,
   deleteReview,
   createCourse,
   updateCourse,
-  courseCount,
   courseList,
   searchCourses,
   getTeacherCourses,
@@ -17,13 +15,18 @@ const {
 } = require("../controller/course.controller");
 const { authentication } = require("../middleware/authentication.middleware");
 const { isTeacher } = require("../middleware/authorization.middleware");
-const uploadFiles = require("../middleware/uploadProfile.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
 const courseValidationSchema = require("../validators/course.validator");
 const courseRouter = express.Router();
 
-courseRouter.post("/create",validateInput(courseValidationSchema,"BODY"), authentication,isTeacher, createCourse);
-//teache's course by teacher
+courseRouter.post(
+  "/create",
+  generateId,
+  validateInput(courseValidationSchema, "BODY"),
+  authentication,
+  isTeacher,
+  createCourse
+);
 courseRouter.get("/teacher-course", authentication, getTeacherCourses);
 // update course by teacher
 courseRouter.put(
@@ -44,8 +47,6 @@ courseRouter.patch("/review/:courseId", authentication, createReview);
 courseRouter.get("/course-review/:courseId", getCourseReviews);
 courseRouter.delete("/deleteReview/:courseId", authentication, deleteReview);
 
-//
-courseRouter.get("/course-count", courseCount);
 courseRouter.get("/course-list", courseList);
 courseRouter.post("/search", searchCourses);
 

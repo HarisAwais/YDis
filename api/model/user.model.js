@@ -1,6 +1,5 @@
 const User = require("../schema/user.schema");
 const Subscription = require("../schema/subcription.schema");
-const { message } = require("../validators/user.validator");
 const saveUser = async (userData) => {
   try {
     const user = new User({
@@ -21,7 +20,7 @@ const saveUser = async (userData) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -41,7 +40,7 @@ const getUserByEmail = async (email) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -61,7 +60,7 @@ const getStudentById = async (_id) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -87,7 +86,7 @@ const setSessionString = async (_id, string = null) => {
     };
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -109,7 +108,7 @@ const getUserById = async (_id) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -131,7 +130,7 @@ const findUserById = async (_id) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -157,7 +156,7 @@ const verifyingTeacher = async (teacherId, isVerified) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -180,7 +179,7 @@ const getTeachers = async (role) => {
   } catch (error) {
     console.log(error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -197,13 +196,13 @@ const getStudents = async (role) => {
       };
     } else {
       return {
-        status: "NO_TEACHERS",
+        status: "NO_STUDENT",
       };
     }
   } catch (error) {
     console.log(error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Sorry Something went wrong",
       error: error.message,
     };
   }
@@ -327,12 +326,14 @@ const getTeacherDetail = async () => {
        data: teachers,
      };
    } else {
-     status: "FAILED";
+    return{
+     status: "FAILED"
+    };
    }
  } catch (error) {
   console.log(error);
   return {
-    status: "INTERNAL_SERVER_ERROR",
+    status: "OOPS!Sorry Something went wrong",
     error: error.message,
   };
  }
@@ -400,7 +401,7 @@ const getStudentDetail = async () => {
 
   console.log(error);
   return {
-    status: "INTERNAL_SERVER_ERROR",
+    status: "OOPS!Sorry Something went wrong",
     error: error.message,
   };
   

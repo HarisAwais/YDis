@@ -6,7 +6,7 @@ const moment = require("moment");
 const createSubscription = async (req, res) => {
   try {
     const { _courseId, classStartTime, classEndTime } = req.body;
-    const studentId = req.decodedToken._id ;
+    const studentId = req.decodedToken._id;
 
     let requestedStartTime = zeroSetter(classStartTime, "date");
     let requestedEndTime = zeroSetter(classEndTime, "date");
@@ -34,17 +34,22 @@ const createSubscription = async (req, res) => {
     };
 
     // Create the subscription with calculated start and end dates
-    const newSubscription = await SubscriptionModel.createAppointment(
+    const newSubscription = await SubscriptionModel.createSubscription(
       subscribed
     );
-
-    return res.status(201).json({
-      message: "Subscription created successfully.",
-      data: newSubscription,
-    });
+    if (newSubscription) {
+      return res.status(201).json({
+        message: "Subscription created successfully.",
+        data: newSubscription,
+      })
+    } else {
+      return res.status(201).json({
+        message: "Subscription not created successfully.",
+      });
+    }
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "SORRY! Something went wrong." });
   }
 };
 
@@ -137,7 +142,7 @@ const updateSubscriptionStatus = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      message: "Internal server error.",
+      message: "SORRY: Something went wrong",
     });
   }
 };
@@ -145,6 +150,7 @@ const updateSubscriptionStatus = async (req, res) => {
 const cancelSubscription = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
+
     if (!req.decodedToken._id) {
       return res.status(403).json({
         error: "Not Authentic User.",
@@ -159,38 +165,28 @@ const cancelSubscription = async (req, res) => {
       return res.status(200).json({
         message: "Subscription canceled successfully.",
       });
-    } else if (cancelResult.status === "SUBSCRIPTION_NOT_FOUND") {
-      return res.status(404).json({
-        error: "Subscription not found.",
-      });
-    } else if (cancelResult.status === "SUBSCRIPTION_NOT_CANCELLABLE") {
-      return res.status(400).json({
-        error: "Subscription cannot be canceled.",
-      });
     } else {
       return res.status(500).json({
-        message: "Internal server error",
+        message: "Your subscription is ACTIVE cannot cancel.",
       });
     }
   } catch (error) {
     console.error(error);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "SORRY: Something went wrong",
     });
   }
 };
 
 const teacherSubscriptions = async (req, res) => {
   try {
-
     const teacherId = req.decodedToken._id;
     const result = await SubscriptionModel.teacherSubscriptions(teacherId);
 
-    if(result.status=="SUCCESS"){
-      return res.status(200).send({data:result.data});
-    }
-    else{
-      return res.status(422).send({message:"OOPS!Something went wrong"})
+    if (result.status == "SUCCESS") {
+      return res.status(200).send({ data: result.data });
+    } else {
+      return res.status(422).send({ message: "OOPS!Something went wrong" });
     }
   } catch (error) {
     return res.status(500).send({ message: "Internal server error." });
@@ -203,19 +199,21 @@ const studentSubscription = async (req, res) => {
       req.decodedToken._id
     );
     if (studentAppointments) {
-      return res.json({
-        message: "Student appointments fetched successfully.",
+      return res.send({
+        message: "Student Subscription Fetched Successfully.",
         data: studentAppointments.data,
       });
+    }
+    else{
+      return res.send({message:"No Subscription Found"})
     }
   } catch (error) {
     console.error(error);
     return res
       .status(500)
-      .json({ message: "Error fetching student appointments." });
+      .json({ message: "SORRY!Something Went Wrong." });
   }
 };
-
 
 const updateCourseStat = async (req, res) => {
   try {
@@ -230,21 +228,20 @@ const updateCourseStat = async (req, res) => {
     );
 
     if (result.status === "SUCCESS") {
-      res
-        .status(201)
-        .send({
-          message: "Topic marked as completed",
-          data: result.data,
-        });
+      res.status(201).send({
+        message: "Topic marked as completed",
+        data: result.data,
+      });
     } else {
-      res.status(404).send({ message: result.message });
+      res.status(404).send({ message:"SORRY: Something Went Wrong" });
     }
   } catch (error) {
     res
       .status(500)
-      .send({ error: "An error occurred while adding the module/topic." });
+      .send({ error: "SORRY: Something Went Wrong." });
   }
 };
+
 
 module.exports = {
   createSubscription,
@@ -253,5 +250,5 @@ module.exports = {
   teacherSubscriptions,
   studentSubscription,
   updateCourseStat,
+  
 };
-

@@ -41,4 +41,5 @@ subscriptionRouter.get(
 );
 subscriptionRouter.patch("/course-stat/:subscriptionId/mark-completed", updateCourseStat);
 
+
 module.exports = subscriptionRouter;

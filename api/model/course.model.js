@@ -1,8 +1,10 @@
 const Course = require("../schema/course.schema");
+const { message } = require("../validators/course.validator");
 //create gig
-const saveCourse = async (gigData) => {
+const saveCourse = async (userId,gigData) => {
   try {
     const gig = new Course({
+      userId,
       ...gigData,
     });
     const savedGig = await gig.save();
@@ -19,7 +21,7 @@ const saveCourse = async (gigData) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -40,9 +42,8 @@ const getAllCourse = async () => {
       };
     }
   } catch (error) {
-    console.log(error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -51,9 +52,7 @@ const getAllCourse = async () => {
 
 const getTeacherCourses = async (teacherId) => {
   try {
-    const course = await Course.find({teacherId })
-    .lean()
-    .exec();
+    const course = await Course.find({ teacherId }).lean().exec();
 
     if (course.length > 0) {
       return {
@@ -66,9 +65,8 @@ const getTeacherCourses = async (teacherId) => {
       };
     }
   } catch (error) {
-    console.log("Error:", error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -90,9 +88,8 @@ const getCourseById = async (_id) => {
       };
     }
   } catch (error) {
-    console.log(error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -120,9 +117,8 @@ const updateCourse = async (teacherId, gigId, updateData) => {
       };
     }
   } catch (error) {
-    console.log("Error:", error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -152,96 +148,94 @@ const deleteGig = async (teacherId, gigId) => {
       };
     }
   } catch (error) {
-    console.log("Error:", error);
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
 };
 
-const addNewReview = async (_id, user, rating,comment) => {
+const addNewReview = async (_id, user, rating, comment) => {
   // const { rating, comment } = body.reviews;
 
-  const updatedGig = await Course.findByIdAndUpdate(_id, {
-    $push: { reviews: { user, rating, comment } },
-  });
+  try {
+    const updatedGig = await Course.findByIdAndUpdate(_id, {
+      $push: { reviews: { user, rating, comment } },
+    });
 
-  // console.log(updatedGig);
+    // console.log(updatedGig);
 
-  if (updatedGig) {
+    if (updatedGig) {
+      return {
+        status: "SUCCESS",
+        data: updatedGig,
+      };
+    } else {
+      return {
+        status: "FAILED",
+      };
+    }
+  } catch (error) {
     return {
-      status: "SUCCESS",
-      data: updatedGig,
-    };
-  } else {
-    return {
-      status: "FAILED",
+      status: "SORRY: Something went wrong",
+      error: error.message,
     };
   }
 };
 
 const updateExistingReview = async (_id, user, body) => {
-  const { rating, comment } = body.reviews;
+  try {
+    const { rating, comment } = body.reviews;
 
-  // console.log(comment);
+    // console.log(comment);
 
-  const updatedGig = await Course.findOneAndUpdate(
-    { _id, "reviews.user": user },
-    { $set: { "reviews.$.rating": rating, "reviews.$.comment": comment } },
-    { new: true }
-  );
+    const updatedGig = await Course.findOneAndUpdate(
+      { _id, "reviews.user": user },
+      { $set: { "reviews.$.rating": rating, "reviews.$.comment": comment } },
+      { new: true }
+    );
 
-  //console.log(updatedGig);
+    //console.log(updatedGig);
 
-  if (updatedGig) {
+    if (updatedGig) {
+      return {
+        status: "SUCCESS",
+        data: updatedGig,
+      };
+    } else {
+      return {
+        status: "FAILED",
+      };
+    }
+  } catch (error) {
     return {
-      status: "SUCCESS",
-      data: updatedGig,
-    };
-  } else {
-    return {
-      status: "FAILED",
+      status: "SORRY: Something went wrong",
+      error: error.message,
     };
   }
 };
 
 const deleteReview = async (id, user) => {
-  const updatedGig = await Course.findByIdAndUpdate(
-    id,
-    { $pull: { reviews: { user } } },
-    { new: true }
-  );
-
-  if (updatedGig) {
-    return {
-      status: "SUCCESS",
-      data: updatedGig,
-    };
-  } else {
-    return {
-      status: "FAILED",
-    };
-  }
-};
-
-const getCourseCount = async () => {
   try {
-    const totalCourse = await Course.estimatedDocumentCount();
+    const updatedGig = await Course.findByIdAndUpdate(
+      id,
+      { $pull: { reviews: { user } } },
+      { new: true }
+    );
 
-    if (totalCourse > 0) {
+    if (updatedGig) {
       return {
         status: "SUCCESS",
-        data: totalCourse,
+        data: updatedGig,
       };
     } else {
       return {
-        status: "NO_COURSES",
+        status: "FAILED",
       };
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY: Something went wrong",
       error: error.message,
     };
   }
@@ -259,7 +253,10 @@ const listCourse = async (page, perPage) => {
 
     return courses;
   } catch (error) {
-    console.error("Error:", error);
+    return {
+      status: "SORRY: Something went wrong",
+      error: error.message,
+    };
   }
 };
 
@@ -293,7 +290,10 @@ const searchCourses = async (category, maxPrice, sortBy) => {
 
     return courses;
   } catch (error) {
-    console.error("Error:", error);
+    return {
+      status: "SORRY: Something went wrong",
+      error: error.message,
+    };
   }
 };
 
@@ -307,11 +307,14 @@ const listingtopCourse = async (_id) => {
 
     if (!updatedCourse) {
       return { status: "NOT_FOUND", message: "Course not found" };
+    } else {
+      return { status: "SUCCESS", data: updatedCourse };
     }
-
-    return { status: "SUCCESS", data: updatedCourse };
   } catch (error) {
-    console.error("Error updating numOfSales:", error);
+    return {
+      status: "SORRY: Something went wrong",
+      error: error.message,
+    };
   }
 };
 
@@ -319,10 +322,12 @@ const getTopCourse = async () => {
   try {
     const topCourses = await Course.find({}).sort({ numOfSales: -1 }).limit(10);
 
-    res.status(200).json({ status: "success", data: topCourses });
+    res.status(200).send({ status: "success", data: topCourses });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return {
+      status: "SORRY: Something went wrong",
+      error: error.message,
+    };
   }
 };
 module.exports = {
@@ -336,7 +341,6 @@ module.exports = {
   addNewReview,
   deleteReview,
   listCourse,
-  getCourseCount,
   searchCourses,
   listingtopCourse,
   getTopCourse,
