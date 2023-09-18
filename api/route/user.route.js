@@ -15,9 +15,10 @@ const {
 const { isAdmin } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
 const userValidationSchema = require("../validators/user.validator");
+const upload = require("../middleware/uploadProfile.middleware");
 const userRouter = express.Router();
 
-userRouter.post("/register", validateInput(userValidationSchema,"BODY"), registerUser);
+userRouter.post("/register", generateId,upload, validateInput(userValidationSchema,"BODY"), registerUser);
 
 userRouter.post("/login", loginUser),
 

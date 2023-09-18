@@ -11,7 +11,7 @@ const startRoom = async (event) => {
   const roomName = roomNameInput.value;
 
   // fetch an Access Token from the join-room route
-  const response = await fetch("/api/v1/video/join-room", {
+  const response = await fetch("/video/twilio/join-room", {
     method: "POST",
     headers: {
       Accept: "application/json",

@@ -1,0 +1,53 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Chat</title>
+</head>
+<body>
+  <h1>Socket.IO Chat</h1>
+  <div>
+    <input type="text" id="message" placeholder="Enter your message">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+  <ul id="chat"></ul>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on("connect", () => {
+      const username = prompt("Enter your username:");
+      socket.emit("new-user-add", username);
+    });
+
+    socket.on("get-users", (users) => {
+      // Update the user list with the connected users
+      const userList = document.getElementById("users");
+      userList.innerHTML = "";
+      users.forEach((user) => {
+        const listItem = document.createElement("li");
+        listItem.textContent = user.userId;
+        userList.appendChild(listItem);
+      });
+    });
+
+    socket.on("receive-message", (data) => {
+      // Handle incoming messages
+      const chat = document.getElementById("chat");
+      const messageItem = document.createElement("li");
+      messageItem.textContent = `${data.senderId}: ${data.message}`;
+      chat.appendChild(messageItem);
+    });
+
+    function sendMessage() {
+      const messageInput = document.getElementById("message");
+      const message = messageInput.value;
+      messageInput.value = "";
+      socket.emit("send-message", { receiverId: "receiver-user-id", message });
+    }
+  </script>
+</body>
+</html>

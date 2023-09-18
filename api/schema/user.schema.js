@@ -40,10 +40,6 @@ const userSchema = new Schema(
       type: String,
       default: null,
     },
-    postCode:{
-      type:String,
-      required:true
-    },
     experience: { 
       type:String,
     },

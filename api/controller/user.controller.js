@@ -16,7 +16,6 @@ const registerUser = async (req, res) => {
       postCode,
     } = req.body;
 
-
     const userFound = await UserModel.getUserByEmail(email);
 
     if (userFound.status === "SUCCESS") {
@@ -29,6 +28,9 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Check if a file was uploaded and get its filename
+    const userProfile = req.file ? req.file.filename : '';
+
     const newUser = {
       firstName,
       lastName,
@@ -39,8 +41,8 @@ const registerUser = async (req, res) => {
       isVerified: role === "TEACHER" ? false : true,
       session,
       postCode,
+      profile: userProfile, // Include the userProfile field in the user object
     };
-
 
     const savedUser = await UserModel.saveUser(newUser);
 

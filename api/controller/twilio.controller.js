@@ -1,80 +1,96 @@
-const { AccessToken, VideoGrant } = require('twilio').jwt;
-const {
-  TWILIO_ACCOUNT_SID,
-  TWILIO_API_KEY_SID,
-  TWILIO_API_KEY_SECRET,
-} = process.env;
+// twilio.controller.js
 
-// Create the Twilio client
-const twilioClient = require('twilio')(
-  TWILIO_API_KEY_SID,
-  TWILIO_API_KEY_SECRET,
-  {
-    accountSid: TWILIO_ACCOUNT_SID,
-  }
+const { v4: uuidv4 } = require("uuid");
+const AccessToken = require("twilio").jwt.AccessToken;
+const VideoGrant = AccessToken.VideoGrant;
+
+const twilioClient = require("twilio")(
+  process.env.TWILIO_API_KEY_SID,
+  process.env.TWILIO_API_KEY_SECRET,
+  { accountSid: process.env.TWILIO_ACCOUNT_SID }
 );
 
-const generateToken = async (req, res) => {
+const findOrCreateRoom = async (roomName) => {
   try {
-    const { identity, roomName } = req.body;
-
-    if (!identity || !roomName) {
-      return res.status(400).json({ error: 'Identity and roomName are required.' });
-    }
-
-    // Create an access token with the VideoGrant
-    const token = new AccessToken(
-      TWILIO_ACCOUNT_SID,
-      TWILIO_API_KEY_SID,
-      TWILIO_API_KEY_SECRET
-    );
-
-    // Set the identity of the token
-    token.identity = identity;
-
-    // Create a VideoGrant for the token
-    const videoGrant = new VideoGrant({ room: roomName });
-
-    // Add the VideoGrant to the token
-    token.addGrant(videoGrant);
-
-    // Serialize the token to a JWT and send it in the response
-    const jwtToken = token.toJwt();
-    res.json({ token: jwtToken });
+    // See if the room exists already. If it doesn't, this will throw
+    // error 20404.
+    await twilioClient.video.rooms(roomName).fetch();
   } catch (error) {
-    res.status(500).json({ error: 'Sorry, something went wrong.' });
+    // The room was not found, so create it
+    if (error.code == 20404) {
+      await twilioClient.video.rooms.create({
+        uniqueName: roomName,
+        type: "go",
+      });
+    } else {
+      // Let other errors bubble up
+      throw error;
+    }
   }
+};
+
+const generateToken = (req, res) => {
+  // Generate an Access Token for a participant in a room
+  if (!req.body || !req.body.roomName) {
+    return res.status(400).send("Must include roomName argument.");
+  }
+
+  const roomName = req.body.roomName;
+  findOrCreateRoom(roomName);
+
+  const token = new AccessToken(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_API_KEY_SID,
+    process.env.TWILIO_API_KEY_SECRET,
+    { identity: uuidv4() }
+  );
+
+  const videoGrant = new VideoGrant({
+    room: roomName,
+  });
+
+  token.addGrant(videoGrant);
+
+  res.send({
+    token: token.toJwt(),
+  });
 };
 
 const joinRoom = async (req, res) => {
+  if (!req.body || !req.body.roomName) {
+    return res.status(400).send("Must include roomName argument.");
+  }
+
+  const roomName = req.body.roomName;
+
   try {
-    const { roomName } = req.body;
+    // Check if the room exists. If not, create it.
+    await findOrCreateRoom(roomName);
 
-    if (!roomName) {
-      return res.status(400).json({ error: 'Room name is required.' });
-    }
+    // Generate an Access Token for the participant
+    const token = new AccessToken(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_API_KEY_SID,
+      process.env.TWILIO_API_KEY_SECRET,
+      { identity: uuidv4() }
+    );
 
-    try {
-      // Check if the room exists by attempting to fetch it
-      await twilioClient.video.rooms(roomName).fetch();
-      // If the room exists, send a success response
-      res.json({ message: 'Room exists.' });
-    } catch (error) {
-      // If the room does not exist (error code 20404), create it
-      if (error.code === 20404) {
-        await twilioClient.video.rooms.create({
-          uniqueName: roomName,
-          type: 'go', // Set the room type as needed
-        });
-        res.json({ message: 'Room created.' });
-      } else {
-        // Let other errors bubble up
-        res.status(error.status || 500).json({ error: 'Sorry, something went wrong.' });
-      }
-    }
+    const videoGrant = new VideoGrant({
+      room: roomName,
+    });
+
+    token.addGrant(videoGrant);
+
+    res.send({
+      token: token.toJwt(),
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Sorry, something went wrong.' });
+    console.error("Error joining room:", error);
+    res.status(500).send("Error joining room.");
   }
 };
 
-module.exports = { generateToken, joinRoom };
+module.exports = {
+  generateToken,
+  joinRoom,
+};

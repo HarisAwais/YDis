@@ -12,11 +12,7 @@ const userValidationSchema = Joi.object({
     "https://www.google.com/search?client=firefox-b-d&q=defualt+logo#vhid=hiaeBBk4UEpQUM&vssid=l"
   ),
   session: Joi.string().allow(null).default(null),
-  postCode: Joi.when("role", {
-    is: Joi.valid("STUDENT", "TEACHER"),
-    then: Joi.string().required(),
-    otherwise: Joi.string(),
-  }),
+  
   experience: Joi.when("role", {
     is: "TEACHER",
     then: Joi.string().required(),
