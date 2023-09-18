@@ -1,8 +1,4 @@
 const QuizModel = require("../model/quiz.model");
-const Quiz = require("../schema/quiz.schema");
-const User = require("../schema/user.schema");
-const Course = require("../schema/course.schema");
-const UserModel = require("../model/user.model");
 const {
   generateCertificatePdf,
   calculateScorePercentage,
@@ -12,6 +8,7 @@ const createQuiz = async (req, res) => {
   try {
     const { title, courseId, questions, startTime, endTime } = req.body;
     const teacherId = req.decodedToken._id;
+
     const newQuiz = {
       title,
       courseId,
@@ -61,24 +58,6 @@ const updateQuiz = async (req, res) => {
   }
 };
 
-const teacherQuizez = async (req, res) => {
-  try {
-    const teacherId = req.decodedToken._id;
-
-    const getAllQuizzesResult = await QuizModel.getAllQuiz(teacherId);
-
-    if (getAllQuizzesResult.status === "SUCCESS") {
-      res.status(200).json(getAllQuizzesResult.data);
-    } else if (getAllQuizzesResult.status === "NOT_FOUND") {
-      res.status(404).json({ message: getAllQuizzesResult.message });
-    } else {
-      res.status(500).json({ error: getAllQuizzesResult.error });
-    }
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
 // teacher will delete quiz
 const deleteQuiz = async (req, res) => {
   try {
@@ -88,8 +67,12 @@ const deleteQuiz = async (req, res) => {
     }
 
     const quizId = req.params.quizId;
-    const deletedQuiz = await QuizModel.deleteQuiz(quizId);
-    res.status(200).json(deletedQuiz);
+    const deletedQuiz = await QuizModel.deleteQuiz(quizId, user);
+    if (deletedQuiz.status == "SUCCESS") {
+      res.status(200).json({ message: "Quiz Deleted Successfully" });
+    } else {
+      return res.status(422).send({ message: "OOPS! Something went wrong" });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -143,11 +126,9 @@ const submitQuiz = async (req, res) => {
 
 //teacher get student who took exam
 
-const getStudentsTookQuiz = async (req, res) => {
-  // console.log(req.decodedToken._id)
+const studentsWhoTookQuiz = async (req, res) => {
   try {
     const quizId = req.params.quizId;
-    // Fetch quiz details
     const quizResponse = await QuizModel.quizById(quizId);
 
     if (quizResponse.status === "NOT_FOUND") {
@@ -157,16 +138,8 @@ const getStudentsTookQuiz = async (req, res) => {
       });
     }
 
-    if (quizResponse.status === "INTERNAL_SERVER_ERROR") {
-      return res.status(500).json({
-        status: "FAILED",
-        message: "SORRY! Something Went Wrong",
-      });
-    }
+    const quiz = quizResponse.data;
 
-    const quiz = quizResponse.quiz;
-
-    // Check if the authenticated teacher is the creator of the quiz
     if (quiz.createdBy.toString() !== req.decodedToken._id.toString()) {
       return res.status(403).json({ message: "Unauthorized access" });
     }
@@ -185,6 +158,7 @@ const getStudentsTookQuiz = async (req, res) => {
       status: "SUCCESS",
       data: studentsTookQuiz,
     });
+    
   } catch (error) {
     console.log(error);
     res.status(500).json({
@@ -197,8 +171,7 @@ const getStudentsTookQuiz = async (req, res) => {
 module.exports = {
   createQuiz,
   updateQuiz,
-  teacherQuizez,
   deleteQuiz,
-  getStudentsTookQuiz,
+  studentsWhoTookQuiz,
   submitQuiz,
 };

@@ -41,7 +41,7 @@ const createSubscription = async (req, res) => {
       return res.status(201).json({
         message: "Subscription created successfully.",
         data: newSubscription,
-      })
+      });
     } else {
       return res.status(201).json({
         message: "Subscription not created successfully.",
@@ -59,15 +59,11 @@ const updateSubscriptionStatus = async (req, res) => {
     const { status } = req.body;
     let { classStartTime, classEndTime } = req.body;
 
-    const condition = {
-      _id: subscriptionId,
-    };
-    let update = {
-      status: status,
-    };
-    let options = {
-      new: true,
-    };
+    const user = req.decodedToken;
+
+    if (!user || user.role !== "TEACHER") {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     if (status === "ACTIVE") {
       let subscriptionFound;
@@ -77,9 +73,19 @@ const updateSubscriptionStatus = async (req, res) => {
           subscriptionId
         );
 
+        console.log(user._id);
         if (subscriptionFound.status === "SUCCESS") {
-          classStartTime = subscriptionFound.data.classStartTime;
-          classEndTime = subscriptionFound.data.classEndTime;
+          const course = subscriptionFound?.data?._courseId;
+          const teacherId = course.teacherId;
+
+          console.log(teacherId);
+          return;
+          if (String(course.teacherId) !== String(user._id)) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+
+          classStartTime = subscriptionFound?.data?.classStartTime;
+          classEndTime = subscriptionFound?.data?.classEndTime;
         } else {
           return res
             .status(404)
@@ -101,8 +107,6 @@ const updateSubscriptionStatus = async (req, res) => {
         });
       }
 
-      // console.log(subscriptionFound.data?._courseId)
-      // return
       const durationResult = await SubscriptionModel.calculateCourseDuration(
         subscriptionFound.data?._courseId
       );
@@ -121,6 +125,16 @@ const updateSubscriptionStatus = async (req, res) => {
         });
       }
     }
+
+    const condition = {
+      _id: subscriptionId,
+    };
+    let update = {
+      status: status,
+    };
+    let options = {
+      new: true,
+    };
 
     const updateResult = await SubscriptionModel.updateSubscription(
       condition,
@@ -203,15 +217,12 @@ const studentSubscription = async (req, res) => {
         message: "Student Subscription Fetched Successfully.",
         data: studentAppointments.data,
       });
-    }
-    else{
-      return res.send({message:"No Subscription Found"})
+    } else {
+      return res.send({ message: "No Subscription Found" });
     }
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({ message: "SORRY!Something Went Wrong." });
+    return res.status(500).json({ message: "SORRY!Something Went Wrong." });
   }
 };
 
@@ -233,15 +244,12 @@ const updateCourseStat = async (req, res) => {
         data: result.data,
       });
     } else {
-      res.status(404).send({ message:"SORRY: Something Went Wrong" });
+      res.status(404).send({ message: "SORRY: Something Went Wrong" });
     }
   } catch (error) {
-    res
-      .status(500)
-      .send({ error: "SORRY: Something Went Wrong." });
+    res.status(500).send({ error: "SORRY: Something Went Wrong." });
   }
 };
-
 
 module.exports = {
   createSubscription,
@@ -250,5 +258,4 @@ module.exports = {
   teacherSubscriptions,
   studentSubscription,
   updateCourseStat,
-  
 };

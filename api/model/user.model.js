@@ -208,60 +208,6 @@ const getStudents = async (role) => {
   }
 };
 
-// const getNearestTeacher = async (longitude, latitude) => {
-//   try {
-//     const nearestTeachers = await User.aggregate([
-//       {
-//         $geoNear: {
-//           near: {
-//             type: "Point",
-//             // coordinates: [parseFloat(longitude), parseFloat(latitude)],
-//             coordinates: [17.43952, 78.49657],
-//           },
-//           distanceField: "distance",
-//           spherical: true,
-//           maxDistance: 10000, // Maximum distance in meters (adjust as needed)
-//         },
-//       },
-//       {
-//         $match: {
-//           role: "TEACHER",
-//           isVerified: true,
-//         },
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           firstName: 1,
-//           secondName: 1,
-//           distance: 1,
-//         },
-//       },
-//     ]);
-
-//     // Check if there are any nearest teachers found
-//     if (nearestTeachers.length === 0) {
-//       return {
-//         status: "FALSE",
-//         message: "No nearest teachers found",
-//         nearestTeachers: [],
-//       };
-//     }
-
-//     // Return the list of nearest teachers with a success status
-//     return {
-//       status: "SUCCESS",
-//       data: nearestTeachers,
-//     };
-//   } catch (error) {
-//     console.error(error);
-//     return {
-//       success: false,
-//       message: "Error occurred while finding nearest teachers",
-//       error: error.message,
-//     };
-//   }
-// };
 
 const getTeacherDetail = async () => {
  try {
@@ -418,7 +364,6 @@ module.exports = {
   verifyingTeacher,
   getTeachers,
   getStudents,
-  // getNearestTeacher,
   getTeacherDetail,
   getStudentDetail,
 };

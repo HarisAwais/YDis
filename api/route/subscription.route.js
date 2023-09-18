@@ -7,19 +7,24 @@ const {
   updateSubscriptionStatus,
   updateCourseStat,
 } = require("../controller/subscription.controller");
-const { isTeacher } = require("../middleware/authorization.middleware");
+
 const { authentication } = require("../middleware/authentication.middleware");
-const { generateId } = require("../middleware/generateId");
+const {isTeacher} = require("../middleware/authorization.middleware")
+
 const subscriptionRouter = express.Router();
 
+//student create subscription
 subscriptionRouter.post(
   "/create-subscription",
   authentication,
   createSubscription
   );
   
+  //Teacher will update status of subscription (pending,active or completed) 
   subscriptionRouter.patch(
     "/update-subscription/:subscriptionId",
+    authentication,
+    isTeacher,
     updateSubscriptionStatus
   );
   

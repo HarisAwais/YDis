@@ -21,11 +21,13 @@ const savedQuiz = async (assignmentData) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Something went wrong",
       error: error.message,
     };
   }
 };
+
+
 const updateQuiz = async (assignmentId, updateData) => {
   try {
     const updatedAssignment = await Quiz.findByIdAndUpdate(
@@ -51,54 +53,12 @@ const updateQuiz = async (assignmentId, updateData) => {
     };
   }
 };
-const getAllQuiz = async (teacherId) => {
-  try {
-    const quizez = await Quiz.find({ createdBy: teacherId }).lean().exec();
-  
 
-    if (quizez) {
-      return {
-        status: "SUCCESS",
-        data: quizez,
-      };
-    } else {
-      return {
-        status: "NOT_FOUND",
-        message: "Quiz not found",
-      };
-    }
-  } catch (error) {
-    return {
-      status: "INTERNAL_SERVER_ERROR",
-      error: error.message,
-    };
-  }
-};
-const getAssignmentById = async (assignmentId) => {
-  try {
-    const quiz = await Quiz.findById(assignmentId);
 
-    if (quiz) {
-      return {
-        status: "SUCCESS",
-        data: quiz,
-      };
-    } else {
-      return {
-        status: "NOT_FOUND",
-        message: "Quiz not found",
-      };
-    }
-  } catch (error) {
-    return {
-      status: "INTERNAL_SERVER_ERROR",
-      error: error.message,
-    };
-  }
-};
-const deleteAssignment = async (assignmentId) => {
+const deleteQuiz = async (_id,user) => {
   try {
-    const quiz = await Quiz.findById(assignmentId);
+    const quiz = await Quiz.findById(_id);
+    // console.log(quiz)
 
     if (!quiz) {
       return {
@@ -106,9 +66,7 @@ const deleteAssignment = async (assignmentId) => {
         message: "Quiz not found",
       };
     }
-
-    // Check if the authenticated teacher is the one who assigned the assignment
-    if (String(quiz.assignedBy) !== String(req.decodedToken._id)) {
+    if (String(quiz.createdBy) !== String(user)) {
       return {
         status: "FORBIDDEN",
         message: "Access denied",
@@ -116,19 +74,21 @@ const deleteAssignment = async (assignmentId) => {
     }
 
     // Delete the assignment
-    await quiz.remove();
+    await quiz.deleteOne({ _id });
 
     return {
       status: "SUCCESS",
-      message: "Assignment deleted successfully",
+      message: "Quiz deleted successfully",
     };
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS!Something went wrong",
       error: error.message,
     };
   }
 };
+
+
 const quizById = async (quizId) => {
   try {
     const quiz = await Quiz.findById({ _id: quizId });
@@ -152,30 +112,7 @@ const quizById = async (quizId) => {
     };
   }
 };
-// const findQuiz = async (quizId) => {
-//   try {
-//     const students = await Student.find({
-//       "quizzes.quizId": quizId,
-//     }).map((student) => ({
-//       studentName: `${student.firstName} ${student.secondName}`,
-//       studentEmail: student.email,
-//       marksObtained: student.quizzes.marksObtained,
-//       submittedAt: student.quizzes.submittedAt,
-//     }));
 
-//     console.log(students);
-// return
-//     return {
-//       status: "SUCCESS",
-//       data: students,
-//     };
-//   } catch (error) {
-//     return {
-//       status: "INTERNAL_SERVER_ERROR",
-//       error: error.message,
-//     };
-//   }
-// };
 
 const subscribeCourse = async (courseId, studentId) => {
   try {
@@ -204,6 +141,7 @@ const subscribeCourse = async (courseId, studentId) => {
   }
 };
 
+
 const calculateScore = (questions, submittedAnswers) => {
   let totalScore = 0;
   const questionScores = [];
@@ -230,6 +168,8 @@ const calculateScore = (questions, submittedAnswers) => {
     questionScores: questionScores,
   };
 };
+
+
 const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   try {
    
@@ -269,6 +209,7 @@ const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   }
 };
 
+
 const getStudentsWhoTookQuiz = async (quizId) => {
   try {
     const studentsTookQuiz = await Quiz.aggregate( [
@@ -304,7 +245,6 @@ const getStudentsWhoTookQuiz = async (quizId) => {
       }
     ]);
 
-    // console.log(studentsTookQuiz);
 
     return studentsTookQuiz;
   } catch (error) {
@@ -312,6 +252,7 @@ const getStudentsWhoTookQuiz = async (quizId) => {
     return null;
   }
 };
+
 
 const getCertification = async(quizId)=>{
   try {
@@ -391,12 +332,11 @@ const getCertification = async(quizId)=>{
   }
 
 }
+
 module.exports = {
   savedQuiz,
   updateQuiz,
-  getAllQuiz,
-  getAssignmentById,
-  deleteAssignment,
+  deleteQuiz,
   quizById,
   subscribeCourse,
   calculateScore,

@@ -42,7 +42,7 @@ const getSubscriptionById = async (_id) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS! Something went wrong",
       error: error.message,
     };
   }

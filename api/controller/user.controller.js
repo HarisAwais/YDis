@@ -137,36 +137,6 @@ const logoutUser = async (req, res) => {
   }
 };
 
-const getNearestTeacher = async (req, res) => {
-  const { longitude, latitude } = req.query;
-
-  try {
-    const result = await UserModel.getNearestTeacher(longitude, latitude);
-    console.log(result);
-    return;
-
-    if (result.success === "SUCCESS") {
-      return res.status(200).json({
-        success: true,
-        message: "Nearest teachers found",
-        data: result.data,
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: "No nearest teachers found",
-        data: [],
-      });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Error occurred while finding nearest teachers",
-      error: error.message,
-    });
-  }
-};
 
 const verifyTeacher = async (req, res) => {
   try {
@@ -233,7 +203,7 @@ const teacherDetail = async (req, res) => {
   try {
     const teacherDetail = await UserModel.getTeacherDetail();
 
-    if (detailResult) {
+    if (teacherDetail) {
       return res.status(200).send({
         status: "SUCCESS",
         data: teacherDetail.data,
@@ -279,11 +249,9 @@ module.exports = {
   registerUser,
   loginUser,
   logoutUser,
-  getNearestTeacher,
   verifyTeacher,
   getAllTeacher,
   getAllStudent,
-  getNearestTeacher,
   teacherDetail,
   studentDetail,
 };

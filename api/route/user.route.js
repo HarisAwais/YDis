@@ -8,7 +8,6 @@ const {
   verifyTeacher,
   getAllTeacher,
   getAllStudent,
-  getNearestTeacher,
   teacherDetail,
   studentDetail,
 } = require("../controller/user.controller");
@@ -22,7 +21,7 @@ userRouter.post("/register", generateId,upload, validateInput(userValidationSche
 
 userRouter.post("/login", loginUser),
 
-  userRouter.post("/logout", authentication, logoutUser);
+userRouter.post("/logout", authentication, logoutUser);
 
 userRouter.patch(
   "/update-teacher/:teacherId",
@@ -31,7 +30,6 @@ userRouter.patch(
   verifyTeacher
 );
 
-userRouter.get("/nearest-teacher",getNearestTeacher)
 
 userRouter.get("/get-teachers", authentication, isAdmin, getAllTeacher);
 

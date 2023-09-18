@@ -1,39 +1,44 @@
 const express = require("express");
-const { generateId } = require("../middleware/generateId");
+
 const { authentication } = require("../middleware/authentication.middleware");
+
 const { isTeacher } = require("../middleware/authorization.middleware");
-const formidable = require("express-formidable");
+
 const {
   createQuiz,
   updateQuiz,
-  teacherQuizez,
   deleteQuiz,
   submitQuiz,
-  getStudentsTookQuiz,
+  studentsWhoTookQuiz,
 } = require("../controller/quiz.controller");
+
 const quizRouter = express.Router();
 
+//Teacher create Quiz
 quizRouter.post("/create-quiz", authentication, isTeacher, createQuiz),
 
+//Teacher update Quiz
   quizRouter.patch(
     "/update-quiz/:quizId",
     authentication,
     isTeacher,
     updateQuiz
   ),
-  quizRouter.get(
-    "/getAllQuiz",
-    authentication,
-    isTeacher,
-    teacherQuizez
-  ),
+
+  //Teacher delete Quiz
   quizRouter.delete(
-    "delete-quiz/:quizId",
+    "/delete-quiz/:quizId",
     authentication,
     isTeacher,
     deleteQuiz
   );
+
+  //Student submit Quiz
 quizRouter.put("/submit-quiz/:quizId", authentication, submitQuiz);
-quizRouter.get("/get-quizez/:quizId", authentication, getStudentsTookQuiz);
+
+//teacher get students who took exam
+quizRouter.get("/get-quizez/:quizId", authentication,isTeacher, studentsWhoTookQuiz);
 
 module.exports = quizRouter;
+
+
