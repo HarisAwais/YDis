@@ -27,6 +27,7 @@ subscriptionRouter.post(
     isTeacher,
     updateSubscriptionStatus
   );
+
   
   subscriptionRouter.delete(
     "/cancel-subscription/:subscriptionId",

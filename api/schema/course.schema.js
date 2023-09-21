@@ -27,7 +27,6 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
     reviews: [
       {
         user: {
@@ -62,10 +61,15 @@ const courseSchema = new mongoose.Schema(
       required: true,
     },
 
-    stripeProductId: {
-      type: String,
+    stripeProduct:{
+      productId: {
+        type: String,
+      },
+      productPrice:{
+        type:String,
+      }
     },
-
+    
     courseOutline: [
       {
         title: {
@@ -94,6 +98,10 @@ const courseSchema = new mongoose.Schema(
         ],
       },
     ],
+    paymentIntentId: {
+      type: String, 
+      required: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

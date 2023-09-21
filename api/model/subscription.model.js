@@ -59,7 +59,7 @@ const checkTimeSlotAvailability = async (
 
     const overlappingSubscription = await Subscription.findOne({
       _courseId,
-      status: "ACTIVE",
+      status: "APPROVED",
       $and: [
         { classEndTime: { $gt: requestedStartTime } },
         { classStartTime: { $lt: requestedEndTime } },
@@ -122,9 +122,9 @@ const cancelSubscription = async (subscriptionId) => {
       return { status: "FAILED", message: "Subscription not found" };
     }
 
-    if (subscription.status == "ACTIVE") {
-      return { status: "SORRY:Your Subscription is active" };
-    }
+    // if (subscription.status == "ACTIVE") {
+    //   return { status: "SORRY:Your Subscription is active" };
+    // }
 
     const cancelSubscription = await Subscription.findByIdAndRemove(
       subscriptionId
@@ -150,7 +150,8 @@ const updateSubscription = async (subscriptionId, update, options) => {
     )
       .lean()
       .exec();
-
+      
+    
     if (updatedSubscription) {
       return {
         status: "SUCCESS",

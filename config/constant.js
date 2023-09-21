@@ -1,0 +1,6 @@
+GENDER = {
+MALE:MALE,
+FEMALE:FEMALE,
+OTHER:OTHER
+}
+module.exports = {GENDER}

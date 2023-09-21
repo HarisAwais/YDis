@@ -1,8 +1,9 @@
+const  Socket  = require("../../socket");
 const { generateSession } = require("../helper/generateSession");
 const { signToken } = require("../helper/signToken");
 const UserModel = require("../model/user.model");
 const bcrypt = require("bcryptjs");
-
+const User = require("../schema/user.schema")
 const registerUser = async (req, res) => {
   try {
     const {
@@ -91,6 +92,12 @@ const loginUser = async (req, res) => {
       if (updatedUser.status === "SUCCESS") {
         // Sign a JWT token with user's information
         const signedToken = await signToken(updatedUser.data);
+
+        const socketInstance = Socket.getConnectedUsers();
+        if (socketInstance) {
+          Socket.emitUserLogin(userFound.data._id);
+        }
+
         return res.status(200).json({
           message: "SUCCESS",
           token: signedToken,
@@ -113,6 +120,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 const logoutUser = async (req, res) => {
   try {
     const userId = req.decodedToken._id;
@@ -136,7 +144,6 @@ const logoutUser = async (req, res) => {
     });
   }
 };
-
 
 const verifyTeacher = async (req, res) => {
   try {
@@ -245,6 +252,28 @@ const studentDetail = async (req, res) => {
   }
 };
 
+const createStripeAccount = async (req, res) => {
+  try {
+    const account = await stripe.accounts.create({
+      type: 'custom', 
+      country: 'US', 
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+    const userId = req.decodedToken._id;
+
+    // Update the user's stripeAccountId field with the Stripe Account ID
+    await User.findByIdAndUpdate(userId, { stripeAccountId: account.id })
+
+    res.status(201).json({ success: true, account });
+  } catch (error) {
+    console.error('Error creating seller account:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -254,4 +283,5 @@ module.exports = {
   getAllStudent,
   teacherDetail,
   studentDetail,
+  createStripeAccount
 };

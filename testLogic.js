@@ -1,3 +1,61 @@
+endpoint de dete hain jese agr os ne test pass kiya hai os ka endpoint bna k rakh dain gay jb user ay ga os end point pr hit kr k wo apna certificat get kr ly ga
+off and on session
+metadata
+{
+  users:[],
+  messages:[{
+    senderId:String,
+    receiverId:String,
+    message:String
+  }]
+}
+
+if (status === "ACTIVE") {
+  let subscriptionFound;
+
+  if (!classStartTime || !classEndTime) {
+    subscriptionFound = await SubscriptionModel.getSubscriptionById(
+      subscriptionId
+    );
+
+    if (subscriptionFound.status === "SUCCESS") {
+      const course = subscriptionFound?.data?._courseId;
+      const teacherId = course.teacherId;
+
+      if (String(course.teacherId) !== String(user._id)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      classStartTime = subscriptionFound?.data?.classStartTime;
+      classEndTime = subscriptionFound?.data?.classEndTime;
+    } else {
+      return res
+        .status(404)
+        .send({ message: "FAILED", error: subscriptionFound.error });
+    }
+  }
+
+  }
+
+  const durationResult = await SubscriptionModel.calculateCourseDuration(
+    subscriptionFound.data?._courseId
+  );
+
+  if (durationResult.status === "SUCCESS") {
+    const dateNow = zeroSetter(Date.now(), "time");
+    const endDate = moment(dateNow).add(
+      durationResult.data,
+      "milliseconds"
+    );
+    update.startDate = dateNow;
+    update.endDate = endDate.toDate();
+  } else {
+    return res.status(500).json({
+      message: "Failed to calculate course duration.",
+    });
+  }
+}
+
 
 //===> Attendance Tracking: If applicable, implement attendance tracking for live classes or in-person sessions. This can help verify teacher attendance and ensure students are receiving the education they expect.
 
@@ -14,6 +72,7 @@
 
 const uploadSubmissionFile = require("./api/middleware/uploadProfile.middleware");
 const { populate } = require("./api/schema/assignment.schema");
+const { messages } = require("./api/validators/user.validator");
 
 const doc = {
     startTime: new Date("2023-08-17T08:30:29.503Z"),
@@ -114,4 +173,46 @@ const doc = {
     //     },
     //   },
     // ]);
-    
+    // Handle webhook events
+app.post('/webhook', async (req, res) => {
+  const event = req.body;
+
+  try {
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        // Mark the subscription as approved by the teacher
+        const paymentIntent = event.data.object;
+        const subscriptionId = paymentIntent.metadata.subscriptionId;
+        await SubscriptionModel.approveSubscription(subscriptionId);
+        break;
+      case 'payment_intent.payment_failed':
+        // Mark the subscription as not approved
+        const failedPaymentIntent = event.data.object;
+        const failedSubscriptionId = failedPaymentIntent.metadata.subscriptionId;
+        await SubscriptionModel.markSubscriptionAsNotApproved(failedSubscriptionId);
+        break;
+      case 'subscription.updated':
+        // Handle subscription status update (e.g., teacher approval)
+        // You may need to update the subscription status in your database
+        break;
+      case 'subscription.deleted':
+        // Subscription was canceled, refund if necessary
+        const deletedSubscription = event.data.object;
+        const deletedSubscriptionId = deletedSubscription.id;
+        const subscriptionStatus = await SubscriptionModel.getSubscriptionStatus(deletedSubscriptionId);
+
+        if (subscriptionStatus !== "TRANSFERRED") {
+          // Refund the payment to the student's account
+          await refundPayment(deletedSubscription.latest_invoice.payment_intent.client_secret);
+        }
+        break;
+      default:
+        // Handle other webhook events if needed
+    }
+
+    res.status(200).send('Webhook received');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error handling webhook');
+  }
+});

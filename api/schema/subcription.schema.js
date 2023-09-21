@@ -28,7 +28,7 @@ const subscriptionSchema = new mongoose.Schema(
       type: String,
       uppercase: true,
       default: "PENDING",
-      enum: ["PENDING", "COMPLETED", "ACTIVE"],
+      enum: ["PENDING","APPROVED", "COMPLETED",],
       required: true,
     },
     courseStat: [
@@ -57,6 +57,7 @@ const subscriptionSchema = new mongoose.Schema(
     endDate: {
       type: Date,
     },
+      paymentIntentId: String, 
   },
   { timestamps: true }
 );

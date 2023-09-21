@@ -20,36 +20,30 @@ const createCourse = async (req, res) => {
 
     const newCourse = {
       teacherId: teacherId,
-      name: req.body.name,
-      description: req.body.description,
-      images: req.body.images,
-      category: req.body.category,
-      reviews: [],
-      fee: req.body.fee,
-      duration: req.body.duration,
-      numOfSales: 0,
-      courseOutline: req.body.courseOutline,
+      ...req.body,
     };
 
-    
-  // Create the product in Stripe
-  const stripeProduct = await stripe.products.create({
-    id:req.generatedId,
-    name: req.body.name,
-    description: req.body.description,
-  });
+    // Create the product in Stripe
+    const stripeProduct = await stripe.products.create({
+      id:req.generatedId,
+      name: newCourse.name,
+      description: newCourse.description,
+    });
 
-  // Create the price in Stripe
-  const stripePrice = await stripe.prices.create({
-    product: stripeProduct.id,
-    unit_amount: req.body.fee * 100, // Convert the fee to cents
-    currency: 'usd', // or your preferred currency
-  });
+    const stripePrice = await stripe.prices.create({
+      product: stripeProduct.id,
+      unit_amount: newCourse.fee * 100, 
+      currency: "usd",
+    });
 
-  // Assign Stripe product and price IDs to newCourse
-  newCourse.stripeProductId = stripeProduct.id;
-  newCourse.stripePriceId = stripePrice.id;
-    const savedCourse = await CourseModel.saveCourse(req.userId,newCourse);
+    newCourse.stripeProduct = {
+      productId: stripeProduct.id,
+      productPrice: stripePrice.id,
+    };
+
+
+    const savedCourse = await CourseModel.saveCourse(req.generatedId, newCourse);
+
 
     if (savedCourse.status == "SUCCESS") {
       res.status(201).json({
@@ -58,13 +52,13 @@ const createCourse = async (req, res) => {
       });
     } else {
       return res.status(422).send({
-        error: "OOPS!Sorry Something went wrong",
+        error: "OOPS! Sorry, something went wrong",
       });
     }
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "OOPS!Sorry Something went wrong",
+      message: "OOPS! Sorry, something went wrong",
       error: error.message,
     });
   }
@@ -365,7 +359,6 @@ const searchCourses = async (req, res) => {
   }
 };
 
-const createStripeCourse=()=>{}
 
 module.exports = {
   createCourse,
@@ -379,5 +372,4 @@ module.exports = {
   deleteReview,
   courseList,
   searchCourses,
-  createStripeCourse
 };

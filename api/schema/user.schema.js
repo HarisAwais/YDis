@@ -45,6 +45,7 @@ const userSchema = new Schema(
     },
    
     isVerified: Boolean,
+    stripeAccountId:{type:String,default:null}
   },
  
   {

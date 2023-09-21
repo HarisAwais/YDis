@@ -6,7 +6,7 @@ const subscriptionValidationSchema = Joi.object({
   classStartTime: Joi.date().required(),
   classEndTime: Joi.date().required(),
   duration: Joi.number().default(60),
-  status: Joi.string().valid('PENDING', 'COMPLETED', 'ACTIVE').default('PENDING').uppercase(),
+  status: Joi.string().valid('PENDING',"APPROVED", 'COMPLETED', 'ACTIVE').default('PENDING').uppercase(),
   startDate: Joi.date(),
   endDate: Joi.date(),
 });

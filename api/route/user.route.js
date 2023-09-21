@@ -10,6 +10,7 @@ const {
   getAllStudent,
   teacherDetail,
   studentDetail,
+  createStripeAccount,
 } = require("../controller/user.controller");
 const { isAdmin } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
@@ -38,5 +39,6 @@ userRouter.get("/get-students", authentication, isAdmin, getAllStudent);
 userRouter.get("/teacher-detail",authentication,isAdmin,teacherDetail)
 
 userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
+userRouter.post("/create-account",createStripeAccount)
 
 module.exports = userRouter;

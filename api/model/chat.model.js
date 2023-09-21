@@ -1,5 +1,4 @@
 const Message = require("../schema/message.schema");
-const mongoose = require("mongoose")
 const saveMessage=async(senderId,receiverId,message)=>{
  try {
        const content = await Message({
