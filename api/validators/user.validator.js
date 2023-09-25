@@ -1,24 +1,35 @@
 const Joi = require('joi');
+const { USER_ROLE, GENDER,PROFILE } = require('../../config/constant'); 
 
 // Define Joi schema for user
-const userValidationSchema = Joi.object({
+const registerValidation = Joi.object({
   firstName: Joi.string().required(),
   lastName: Joi.string().required(),
   email: Joi.string().email().required(),
   password: Joi.string().required(),
-  gender: Joi.string().valid("MALE", "FEMALE", "OTHER").required(),
-  role: Joi.string().valid("STUDENT", "TEACHER", "ADMIN").required().uppercase(),
+  gender: Joi.string().valid(GENDER.MALE, GENDER.FEMALE, GENDER.OTHER).required(),
+  role: Joi.string().valid(USER_ROLE.STUDENT, USER_ROLE.TEACHER, USER_ROLE.ADMIN).required().uppercase(),
   profile: Joi.string().default(
-    "https://www.google.com/search?client=firefox-b-d&q=defualt+logo#vhid=hiaeBBk4UEpQUM&vssid=l"
+    PROFILE.PROFILE
   ),
   session: Joi.string().allow(null).default(null),
-  
   experience: Joi.when("role", {
-    is: "TEACHER",
+    is: USER_ROLE.TEACHER,
     then: Joi.string().required(),
     otherwise: Joi.string(),
   }),
-  isVerified: Joi.boolean(),
-});
-module.exports = userValidationSchema;
+  isVerified: Joi.boolean().default(false), 
+  stripeAccountId: Joi.string().default(null), 
 
+});
+
+const loginValidation = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+const verifiyValidation = Joi.boolean().required();
+
+const teacherIdValidation = Joi.string().length(24).hex().required();
+
+module.exports = {registerValidation,loginValidation,verifiyValidation,teacherIdValidation};

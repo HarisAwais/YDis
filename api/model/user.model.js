@@ -140,7 +140,7 @@ const verifyingTeacher = async (teacherId, isVerified) => {
   try {
     const updatedTeacher = await User.findByIdAndUpdate(
       { _id: teacherId },
-      { isVerified: isVerified },
+      { isVerified: true },
       { new: true }
     );
 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subscription Checkout</title>
+    <!-- Include Stripe.js library -->
+    <script src="https://js.stripe.com/v3/"></script>
+  </head>
+  <body>
+    <h1>Subscription Checkout</h1>
+    <form id="subscriptionForm">
+      <label for="_courseId">Course ID:</label>
+      <input type="text" id="_courseId" name="_courseId" required /><br />
+
+      <label for="classStartTime">Class Start Time:</label>
+      <input
+        type="text"
+        id="classStartTime"
+        name="classStartTime"
+        required
+      /><br />
+
+      <label for="classEndTime">Class End Time:</label>
+      <input type="text" id="classEndTime" name="classEndTime" required /><br />
+
+      <input
+        type="hidden"
+        id="studentId"
+        name="studentId"
+        value="650847591899f857d5c7a699"
+      />
+
+      <label for="cardElement">Card Details:</label>
+      <div id="cardElement"></div>
+      <br />
+
+      <button type="submit">Subscribe</button>
+    </form>
+
+    <div id="error"></div>
+
+    <script>
+      const stripe = Stripe("pk_test_51NpSaDC44tKvGwWAmPY1VSmEInHVgwlWEEX1qX14KVswED2GUneyVFGGukzhSGCKpF3t2QzuiSaoEIFqYvIEn8bj005Q6sNulT");
+      const elements = stripe.elements();
+      const cardElement = elements.create("card");
+      cardElement.mount("#cardElement");
+
+      const subscriptionForm = document.getElementById("subscriptionForm");
+      const errorElement = document.getElementById("error");
+
+      subscriptionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const _courseId = document.getElementById("_courseId").value;
+        const classStartTime = document.getElementById("classStartTime").value;
+        const classEndTime = document.getElementById("classEndTime").value;
+        const studentId = document.getElementById("studentId").value;
+
+        // Create a Payment Method
+        const { paymentMethod, error } = await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+        });
+
+        if (error) {
+          errorElement.textContent = error.message;
+          return;
+        }
+
+        const requestBody = {
+          _courseId,
+          paymentMethodId: paymentMethod.id,
+          classStartTime,
+          classEndTime,
+          studentId,
+        };
+        console.log(requestBody);
+
+        try {
+          const response = await fetch(
+            "/api/v1/subscription/create-subscription",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestBody),
+            }
+          );
+
+          if (response.status === 201) {
+            const data = await response.json();
+            alert("Subscription created successfully!");
+            console.log("Subscription data:", data);
+          } else {
+            const data = await response.json();
+            alert("Error creating subscription. Please check your input.");
+            console.error("Error:", data);
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      });
+    </script>
+  </body>
+</html>

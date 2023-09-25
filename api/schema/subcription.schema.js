@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { STATUS, PAYMENT } = require("../../config/constant");
 
 const subscriptionSchema = new mongoose.Schema(
   {
@@ -27,8 +28,8 @@ const subscriptionSchema = new mongoose.Schema(
     status: {
       type: String,
       uppercase: true,
-      default: "PENDING",
-      enum: ["PENDING","APPROVED", "COMPLETED",],
+      default: STATUS.PENDING,
+      enum: [STATUS.PENDING,STATUS.APPROVED,STATUS.COMPLETE],
       required: true,
     },
     courseStat: [
@@ -57,8 +58,19 @@ const subscriptionSchema = new mongoose.Schema(
     endDate: {
       type: Date,
     },
+    stripeAccount: {
       paymentIntentId: String, 
-  },
+      subscriptionStartDate: Date,
+      subscriptionEndDate: Date, 
+      subscriptionCreationDate: Date,
+      paymentStatus: {
+        type: String,
+        uppercase: true,
+        enum: [PAYMENT.PENDING, PAYMENT.APPROVED], 
+        default: PAYMENT.PENDING, 
+      },
+
+    },  },
   { timestamps: true }
 );
 

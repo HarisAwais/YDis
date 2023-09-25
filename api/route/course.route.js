@@ -16,38 +16,59 @@ const {
 const { authentication } = require("../middleware/authentication.middleware");
 const { isTeacher } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
-const courseValidationSchema = require("../validators/course.validator");
+const {courseValidate, courseIdValidate, ratingCommentValidate} = require("../validators/course.validator");
 const courseRouter = express.Router();
 
 courseRouter.post(
   "/create",
   generateId,
-  validateInput(courseValidationSchema, "BODY"),
+  validateInput(courseValidate, "BODY"),
   authentication,
   isTeacher,
   createCourse
 );
+
+//route for teacher to get his oen courses
 courseRouter.get("/teacher-course", authentication, getTeacherCourses);
+
 // update course by teacher
 courseRouter.put(
   "/update-course/:courseId",
   authentication,
   isTeacher,
+  validateInput(courseValidate,"BODY"),
+  // validateInput(courseIdValidate,"PARAMS"),
   updateCourse
 );
 // deleteCourse by teacher
-courseRouter.delete("/delete/:gigId", authentication, isTeacher, deleteCourse);
+// courseRouter.delete("/delete/:courseId", validateInput(courseIdValidate,"PARAMS"),authentication, isTeacher, deleteCourse);
+
+courseRouter.delete("/delete/:courseId",authentication, isTeacher, deleteCourse);
 
 // list all courses to user
 courseRouter.get("/list-course", getAllCourse);
 courseRouter.get("/single-course/:courseId", getSingleCourse);
-courseRouter.get("/top-courses",)
+// courseRouter.get("/top-courses",)
+
 //about the reviews
-courseRouter.patch("/review/:courseId", authentication, createReview);
-courseRouter.get("/course-review/:courseId", getCourseReviews);
-courseRouter.delete("/deleteReview/:courseId", authentication, deleteReview);
+courseRouter.patch("/review/:courseId",
+// validateInput(courseIdValidate,"PARAMS"),
+validateInput(ratingCommentValidate,"BODY"),
+authentication,
+createReview);
+
+//get product reviews
+courseRouter.get("/course-review/:courseId",
+// validateInput(courseIdValidate,"PARAMS"),
+getCourseReviews);
+//
+courseRouter.delete("/delete-review/:courseId", 
+// validateInput(courseIdValidate,"PARAMS"),
+authentication,
+deleteReview);
 
 courseRouter.get("/course-list", courseList);
+
 courseRouter.post("/search", searchCourses);
 
 module.exports = courseRouter;

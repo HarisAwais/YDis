@@ -16,7 +16,6 @@ const subscriptionRouter = express.Router();
 //student create subscription
 subscriptionRouter.post(
   "/create-subscription",
-  authentication,
   createSubscription
   );
   

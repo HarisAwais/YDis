@@ -1,6 +1,6 @@
 const CourseModel = require("../model/course.model");
 const UserModel = require("../model/user.model");
-const stripe = require('stripe')('sk_test_51NpSaDC44tKvGwWA8hqaaDH5TUcJypQjZm1ygDYUYX4gUjBNQUB7Swea652dKKq6odCdFyzKtJYy8eg7KExl3vuk009AdvchfR');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 //to create course
 const createCourse = async (req, res) => {
@@ -8,24 +8,23 @@ const createCourse = async (req, res) => {
     const teacherId = req.decodedToken._id;
     const teacher = await UserModel.getUserById(teacherId);
 
-    if (!teacher.data) {
+    if (!teacher) {
       return res.status(404).json({ message: "Teacher not found" });
     }
 
-    if (!teacher.data.isVerified) {
+    if (!teacher?.data?.isVerified) {
       return res.status(403).json({ message: "Teacher is not verified" });
     }
-
-    req.body.image = [req?.fullFilePath];
 
     const newCourse = {
       teacherId: teacherId,
       ...req.body,
     };
 
+    const generatedId = req.generatedId
     // Create the product in Stripe
     const stripeProduct = await stripe.products.create({
-      id:req.generatedId,
+      id:generatedId,
       name: newCourse.name,
       description: newCourse.description,
     });
@@ -41,9 +40,7 @@ const createCourse = async (req, res) => {
       productPrice: stripePrice.id,
     };
 
-
-    const savedCourse = await CourseModel.saveCourse(req.generatedId, newCourse);
-
+    const savedCourse = await CourseModel.saveCourse(generatedId, newCourse);
 
     if (savedCourse.status == "SUCCESS") {
       res.status(201).json({
@@ -63,7 +60,7 @@ const createCourse = async (req, res) => {
     });
   }
 };
-
+//teacher get courses
 const getTeacherCourses = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
@@ -144,19 +141,15 @@ const getSingleCourse = async (req, res) => {
 
 const deleteCourse = async (req, res) => {
   try {
-    const { gigId } = req.params;
+    const { courseId } = req.params;
     const teacherId = req.decodedToken._id;
 
-    const deleteResult = await CourseModel.deleteGig(teacherId, gigId);
+    const deleteResult = await CourseModel.deleteCourse(teacherId, courseId);
+    
 
     if (deleteResult.status === "SUCCESS") {
       return res.status(200).json({
         message: deleteResult.message,
-      });
-    } else if (deleteResult.status === "FAILED") {
-      return res.status(404).json({
-        message: "Course not found",
-        identifier: "01",
       });
     } else {
       return res.status(500).json({
@@ -189,10 +182,6 @@ const updateCourse = async (req, res) => {
         message: updateResult.message,
         data: updateResult.data,
       });
-    } else if (updateResult.status === "FAILED") {
-      return res.status(404).json({
-        message: "Course not found",
-      });
     } else {
       return res.status(500).json({
         message: "SORRY: Something went wrong",
@@ -214,11 +203,6 @@ const createReview = async (req, res) => {
     const { _id } = req.decodedToken;
     const { rating, comment } = req.body;
 
-    // console.log(courseId)
-    // console.log(_id),
-    // console.log(rating,comment)
-    // return
-
     const isGigExist = await CourseModel.getCourseById(courseId);
 
     if (isGigExist.status !== "SUCCESS") {
@@ -235,7 +219,7 @@ const createReview = async (req, res) => {
     let updatedGig;
 
     if (isReviewExist) {
-      updatedGig = await CourseModel.updateExistingReview(gigId, _id, req.body);
+      updatedGig = await CourseModel.updateExistingReview(courseId, _id, req.body);
     } else {
       updatedGig = await CourseModel.addNewReview(
         courseId,
@@ -307,6 +291,7 @@ const deleteReview = async (req, res) => {
     });
   }
 };
+
 
 const courseList = async (req, res) => {
   try {

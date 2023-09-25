@@ -1,31 +1,31 @@
 const Joi = require('joi');
 
-const questionSchema = Joi.object({
-  questionText: Joi.string().required(),
-  options: Joi.array().items(Joi.string()).min(2).required(),
-  correctOption: Joi.number().min(0).required(),
+const teacherQuestion = Joi.object({
+  title: Joi.string().required(),
+  courseId: Joi.string().required(),
+  questions: Joi.array().items(
+    Joi.object({
+      questionText: Joi.string().required(),
+      options: Joi.array().items(Joi.string()).min(2).required(),
+      correctOption: Joi.number().integer().min(0).required(),
+    })
+  ).min(1).required(),
+  startTime: Joi.date().iso().required(),
+  endTime: Joi.date().iso().greater(Joi.ref('startTime')).required(),
 });
 
-const studentAnswerSchema = Joi.object({
+const studentAnswers = Joi.object({
   studentId: Joi.string().required(),
   answers: Joi.array().items(
     Joi.object({
-      questionIndex: Joi.number().required(),
-      selectedOption: Joi.number(),
+      questionIndex: Joi.number().integer().min(0).required(),
+      selectedOption: Joi.number().integer().min(0).required(),
     })
-  ),
-  score: Joi.number(),
-  submittedAt: Joi.date(),
+  ).min(1).required(),
+  score: Joi.number().integer().min(0).optional(),
+  submittedAt: Joi.date().iso().optional(),
 });
 
-const quizValidationSchema = Joi.object({
-  title: Joi.string().required(),
-  courseId: Joi.string().required(),
-  questions: Joi.array().items(questionSchema).min(1).required(),
-  createdBy: Joi.string().required(),
-  startTime: Joi.date().required(),
-  endTime: Joi.date().required(),
-  studentAnswers: Joi.array().items(studentAnswerSchema),
-});
+const quizIDValidate = Joi.string().alphanum().length(24).hex();
 
-module.exports = quizValidationSchema;
+module.exports = {teacherQuestion,studentAnswers,quizIDValidate};

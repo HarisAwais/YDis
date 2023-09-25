@@ -12,20 +12,23 @@ const {
   studentDetail,
   createStripeAccount,
 } = require("../controller/user.controller");
-const { isAdmin } = require("../middleware/authorization.middleware");
+const { isAdmin,isTeacher } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
-const userValidationSchema = require("../validators/user.validator");
+const {registerValidation, loginValidation, teacherIdValidation, verifiyValidation} = require("../validators/user.validator");
 const upload = require("../middleware/uploadProfile.middleware");
 const userRouter = express.Router();
 
-userRouter.post("/register", generateId,upload, validateInput(userValidationSchema,"BODY"), registerUser);
+userRouter.post("/register", generateId,upload,
+validateInput(registerValidation,"BODY"),
+registerUser);
 
-userRouter.post("/login", loginUser),
+userRouter.post("/login",validateInput(loginValidation,"BODY"), loginUser),
 
 userRouter.post("/logout", authentication, logoutUser);
 
 userRouter.patch(
   "/update-teacher/:teacherId",
+  validateInput(teacherIdValidation,"PARAMS"),
   authentication,
   isAdmin,
   verifyTeacher
@@ -39,6 +42,6 @@ userRouter.get("/get-students", authentication, isAdmin, getAllStudent);
 userRouter.get("/teacher-detail",authentication,isAdmin,teacherDetail)
 
 userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
-userRouter.post("/create-account",createStripeAccount)
+userRouter.post("/create-stripe-account",createStripeAccount)
 
 module.exports = userRouter;

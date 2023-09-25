@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
+const { USER_ROLE,GENDER,PROFILE } = require("../../config/constant");
 
-const userSchema = new Schema(
+const userSchema = new mongoose.Schema(
   {
     firstName: {
       type: String,
@@ -23,18 +23,18 @@ const userSchema = new Schema(
     gender:{
       type:String,
       required:true,
-      enum:['MALE','FEMALE','OTHER']
+      enum: [GENDER.MALE, GENDER.FEMALE, GENDER.OTHER], 
+
     },
     role: {
       type: String,
       required: true,
       uppercase:true,
-      enum: ["STUDENT", "TEACHER", "ADMIN"],
+      enum: [USER_ROLE.STUDENT,USER_ROLE.TEACHER,USER_ROLE.ADMIN],
     },
     profile: {
       type: String,
-      default:
-        "https://www.google.com/search?client=firefox-b-d&q=defualt+logo#vhid=hiaeBBk4UEpQUM&vssid=l",
+      default:PROFILE
     },
     session: {
       type: String,
@@ -43,14 +43,10 @@ const userSchema = new Schema(
     experience: { 
       type:String,
     },
-   
     isVerified: Boolean,
     stripeAccountId:{type:String,default:null}
   },
- 
-  {
-    timestamps: true,
-  }
+  {timestamps: true}
 );
 
 const User = mongoose.model("User", userSchema);

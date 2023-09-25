@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 // Define the Joi schema for a course
-const courseValidationSchema = Joi.object({
+const courseValidate = Joi.object({
   // teacherId: Joi.string().hex().length(24).required(),
   name: Joi.string().required(),
   description: Joi.string().required(),
@@ -16,8 +16,7 @@ const courseValidationSchema = Joi.object({
   ),
   fee: Joi.number().required(),
   numOfReviews: Joi.number().default(0),
-  duration: Joi.number().required(),
-  numOfSales: Joi.number().default(0),
+  // duration: Joi.number().required(),
   courseOutline: Joi.array().items(
     Joi.object({
       title: Joi.string().required(),
@@ -32,4 +31,11 @@ const courseValidationSchema = Joi.object({
   isDeleted: Joi.boolean().default(false),
 });
 
-module.exports = courseValidationSchema;
+const courseIdValidate = Joi.string().length(24).hex();
+
+const ratingCommentValidate = Joi.object({
+  rating: Joi.number().min(1).max(5).required(),
+  comment: Joi.string().required(),
+});
+
+module.exports = {courseValidate,courseIdValidate,ratingCommentValidate};

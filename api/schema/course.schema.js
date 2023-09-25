@@ -18,11 +18,6 @@ const courseSchema = new mongoose.Schema(
       required: true,
     },
 
-    images: {
-      type: [String],
-      required: false,
-    },
-
     category: {
       type: String,
       required: true,
@@ -54,11 +49,6 @@ const courseSchema = new mongoose.Schema(
     numOfReviews: {
       type: Number,
       default: 0,
-    },
-
-    duration: {
-      type: Number,
-      required: true,
     },
 
     stripeProduct:{
@@ -98,10 +88,6 @@ const courseSchema = new mongoose.Schema(
         ],
       },
     ],
-    paymentIntentId: {
-      type: String, 
-      required: true,
-    },
     isDeleted: {
       type: Boolean,
       default: false,

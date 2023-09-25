@@ -1,7 +1,5 @@
 const Quiz = require("../schema/quiz.schema");
-const User = require("../schema/user.schema");
 const mongoose = require("mongoose");
-const ObjectId = mongoose.Types.ObjectId;
 
 const savedQuiz = async (assignmentData) => {
   try {
@@ -27,13 +25,12 @@ const savedQuiz = async (assignmentData) => {
   }
 };
 
-
 const updateQuiz = async (assignmentId, updateData) => {
   try {
     const updatedAssignment = await Quiz.findByIdAndUpdate(
       assignmentId,
       updateData,
-      { new: true } 
+      { new: true }
     );
 
     if (updatedAssignment) {
@@ -54,8 +51,7 @@ const updateQuiz = async (assignmentId, updateData) => {
   }
 };
 
-
-const deleteQuiz = async (_id,user) => {
+const deleteQuiz = async (_id, user) => {
   try {
     const quiz = await Quiz.findById(_id);
     // console.log(quiz)
@@ -88,23 +84,21 @@ const deleteQuiz = async (_id,user) => {
   }
 };
 
-
-const quizById = async (quizId) => {
+const quizById = async (_id) => {
   try {
-    const quiz = await Quiz.findById({ _id: quizId });
-
-
-    if (!quiz) {
+    const quiz = await Quiz.findById(_id);
+  
+    if (quiz) {
+      return {
+        status: "SUCCESS",
+        data: quiz,
+      };
+    } else {
       return {
         status: "NOT_FOUND",
         message: "Quiz not found",
       };
     }
-
-    return {
-      status: "SUCCESS",
-      data: quiz,
-    };
   } catch (error) {
     return {
       status: "INTERNAL_SERVER_ERROR",
@@ -112,7 +106,6 @@ const quizById = async (quizId) => {
     };
   }
 };
-
 
 const subscribeCourse = async (courseId, studentId) => {
   try {
@@ -141,7 +134,6 @@ const subscribeCourse = async (courseId, studentId) => {
   }
 };
 
-
 const calculateScore = (questions, submittedAnswers) => {
   let totalScore = 0;
   const questionScores = [];
@@ -169,10 +161,8 @@ const calculateScore = (questions, submittedAnswers) => {
   };
 };
 
-
 const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   try {
-   
     const quizHistoryEntry = {
       quizId: quizId,
       studentId,
@@ -209,42 +199,38 @@ const submitQuizToDB = async (studentId, quizId, submittedAnswers, score) => {
   }
 };
 
-
 const getStudentsWhoTookQuiz = async (quizId) => {
   try {
-    const studentsTookQuiz = await Quiz.aggregate( [
+    const studentsTookQuiz = await Quiz.aggregate([
       {
         $match: {
-          _id: new ObjectId(quizId)
-        }
+          _id: new mongoose.Types.ObjectId(quizId),
+        },
       },
       {
         $lookup: {
-          from: 'User',
-          localField: 'studentAnswers.studentId',
-          foreignField: '_id',
-          as: 'studentInfo'
-        }
+          from: "users",
+          localField: "studentAnswers.studentId",
+          foreignField: "_id",
+          as: "studentInfo",
+        },
       },
       {
         $unwind: {
-          path: '$studentInfo',
-          includeArrayIndex: 'string',
-          preserveNullAndEmptyArrays: true
-        }
+          path: "$studentInfo",
+        },
       },
       {
         $project: {
-          studentId: '$studentInfo._id',
-          firstName: '$studentInfo.firstName',
-          lastName: '$studentInfo.lastName',
-          answers: '$studentAnswers.answers',
-          score: '$studentAnswers.score',
-          submittedAt: '$studentAnswers.submittedAt'
-        }
-      }
+          studentId: "$studentInfo._id",
+          firstName: "$studentInfo.firstName",
+          lastName: "$studentInfo.lastName",
+          answers: "$studentAnswers.answers",
+          score: "$studentAnswers.score",
+          submittedAt: "$studentAnswers.submittedAt",
+        },
+      },
     ]);
-
 
     return studentsTookQuiz;
   } catch (error) {
@@ -253,18 +239,17 @@ const getStudentsWhoTookQuiz = async (quizId) => {
   }
 };
 
-
-const getCertification = async(quizId)=>{
+const getCertificate = async (studentId) => {
   try {
     const quizData = await Quiz.aggregate([
       {
         $match: {
-          _id: ObjectId(quizId),
+          "studentAnswers.studentId": new mongoose.Types.ObjectId(studentId),
         },
       },
       {
         $lookup: {
-          from: "User",
+          from: "users",
           localField: "studentAnswers.studentId",
           foreignField: "_id",
           as: "student",
@@ -280,7 +265,7 @@ const getCertification = async(quizId)=>{
       },
       {
         $lookup: {
-          from: "Course", 
+          from: "courses",
           localField: "courseId",
           foreignField: "_id",
           as: "course",
@@ -298,40 +283,37 @@ const getCertification = async(quizId)=>{
       {
         $project: {
           studentName: {
-            $concat: ["$student.firstName", " ", "$student.secondName"],
+            $concat: ["$student.firstName", " ", "$student.lastName"],
           },
           teacherName: {
-            $concat: ["$teacher.firstName", " ", "$teacher.secondName"],
+            $concat: ["$teacher.firstName", " ", "$teacher.lastName"],
           },
           courseName: "$course.name",
+          studentId: "$student._id",
+          score: "$studentAnswers.score",
+          questions: "$questions",
         },
       },
-  
-      
     ]);
-  
+
     if (quizData && quizData.length > 0) {
-      const result = {
+      return {
         status: "SUCCESS",
-        data: {
-          studentName: quizData[0].studentName,
-          teacherName: quizData[0].teacherName,
-          courseName: quizData[0].courseName,
-        },
+        data: quizData[0], // Assuming you want the first quiz found (you can modify this logic)
       };
-      return result;
     } else {
-      return { status: "FAILED" };
+      return {
+        status: "FAILED",
+        error: "No quiz found for the given studentId",
+      };
     }
-  
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "OOPS! Something went wrong",
       error: error.message,
     };
   }
-
-}
+};
 
 module.exports = {
   savedQuiz,
@@ -342,5 +324,5 @@ module.exports = {
   calculateScore,
   submitQuizToDB,
   getStudentsWhoTookQuiz,
-  getCertification
+  getCertificate,
 };

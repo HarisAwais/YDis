@@ -3,21 +3,16 @@ const { generateSession } = require("../helper/generateSession");
 const { signToken } = require("../helper/signToken");
 const UserModel = require("../model/user.model");
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose")
 const User = require("../schema/user.schema")
+
+const stripe = require("stripe")('sk_test_51NpSaDC44tKvGwWA8hqaaDH5TUcJypQjZm1ygDYUYX4gUjBNQUB7Swea652dKKq6odCdFyzKtJYy8eg7KExl3vuk009AdvchfR')
+
 const registerUser = async (req, res) => {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      gender,
-      experience,
-      role,
-      postCode,
-    } = req.body;
+    const {role} = req.body;
 
-    const userFound = await UserModel.getUserByEmail(email);
+    const userFound = await UserModel.getUserByEmail(req.body.email);
 
     if (userFound.status === "SUCCESS") {
       return res.status(409).json({
@@ -27,22 +22,17 @@ const registerUser = async (req, res) => {
 
     const session = generateSession();
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
     // Check if a file was uploaded and get its filename
     const userProfile = req.file ? req.file.filename : '';
 
     const newUser = {
-      firstName,
-      lastName,
-      email,
-      gender,
-      password: hashedPassword,
-      role,
-      isVerified: role === "TEACHER" ? false : true,
+      ...req.body,
       session,
-      postCode,
-      profile: userProfile, // Include the userProfile field in the user object
+      password: hashedPassword,
+      isVerified: role === "TEACHER" ? false : true,
+      profile: userProfile, 
     };
 
     const savedUser = await UserModel.saveUser(newUser);
@@ -85,19 +75,14 @@ const loginUser = async (req, res) => {
       const sessionString = generateSession();
 
       const updatedUser = await UserModel.setSessionString(
-        userFound.data._id,
+        userFound?.data?._id,
         sessionString
       );
 
       if (updatedUser.status === "SUCCESS") {
         // Sign a JWT token with user's information
         const signedToken = await signToken(updatedUser.data);
-
-        const socketInstance = Socket.getConnectedUsers();
-        if (socketInstance) {
-          Socket.emitUserLogin(userFound.data._id);
-        }
-
+        
         return res.status(200).json({
           message: "SUCCESS",
           token: signedToken,
@@ -147,7 +132,6 @@ const logoutUser = async (req, res) => {
 
 const verifyTeacher = async (req, res) => {
   try {
-    const { isVerified } = req.body;
     const { teacherId } = req.params;
 
     const teacher = await UserModel.findUserById(teacherId);
@@ -156,7 +140,7 @@ const verifyTeacher = async (req, res) => {
     }
     const updateTeacher = await UserModel.verifyingTeacher(
       teacherId,
-      isVerified
+      req.body.isVerified
     );
 
     if (updateTeacher.status === "SUCCESS") {
@@ -254,26 +238,36 @@ const studentDetail = async (req, res) => {
 
 const createStripeAccount = async (req, res) => {
   try {
+    // Create a custom Stripe account
     const account = await stripe.accounts.create({
-      type: 'custom', 
-      country: 'US', 
+      type: 'custom',
+      country: 'US',
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
     });
-    const userId = req.decodedToken._id;
 
-    // Update the user's stripeAccountId field with the Stripe Account ID
-    await User.findByIdAndUpdate(userId, { stripeAccountId: account.id })
+    // Extract the user ID from the request body
+    const { userId } = req.decodedToken._id;
+    // const  {userId} = req.body;
+   
+    await User.findByIdAndUpdate({_id:userId}, { stripeAccountId: account.id });
 
-    res.status(201).json({ success: true, account });
+    // Respond with a success message and the Stripe account details
+    res.status(201).json({
+      success: true,
+      message: 'Stripe account created and associated with the user successfully.',
+      account,
+    });
   } catch (error) {
     console.error('Error creating seller account:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred while creating the Stripe account.',
+    });
   }
 };
-
 module.exports = {
   registerUser,
   loginUser,

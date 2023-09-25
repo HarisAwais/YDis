@@ -1,18 +1,19 @@
 const Course = require("../schema/course.schema");
 const { message } = require("../validators/course.validator");
 //create gig
-const saveCourse = async (userId,gigData) => {
+const saveCourse = async (generatedId,courseData) => {
   try {
-    const gig = new Course({
-      userId,
-      ...gigData,
+    const course = new Course({
+      generatedId,
+      ...courseData,
     });
-    const savedGig = await gig.save();
+    
+    const savedCourse = await course.save();
 
-    if (savedGig) {
+    if (savedCourse) {
       return {
         status: "SUCCESS",
-        data: savedGig,
+        data: savedCourse,
       };
     } else {
       return {
@@ -26,7 +27,7 @@ const saveCourse = async (userId,gigData) => {
     };
   }
 };
-//get all gig
+//get all course
 const getAllCourse = async () => {
   try {
     const gig = await Course.find().lean().exec();
@@ -96,10 +97,10 @@ const getCourseById = async (_id) => {
 };
 
 //update course by id
-const updateCourse = async (teacherId, gigId, updateData) => {
+const updateCourse = async (teacherId, courseId, updateData) => {
   try {
     const updatedGig = await Course.findOneAndUpdate(
-      { _id: gigId, teacherId },
+      { _id: courseId, teacherId },
       { $set: updateData },
       { new: true }
     )
@@ -108,7 +109,7 @@ const updateCourse = async (teacherId, gigId, updateData) => {
     if (updatedGig) {
       return {
         status: "SUCCESS",
-        message: "Gig updated successfully",
+        message: "Course updated successfully",
         data: updatedGig,
       };
     } else {
@@ -124,23 +125,20 @@ const updateCourse = async (teacherId, gigId, updateData) => {
   }
 };
 
-//delete gig by id
-const deleteGig = async (teacherId, gigId) => {
+//delete course by id
+const deleteCourse = async (teacherId, courseId) => {
   try {
-    console.log("gigId:", gigId);
-    console.log("teacherId:", teacherId);
-    const deletedGig = await Course.findOneAndUpdate(
-      { _id: gigId, teacherId },
+ 
+    const deletedCourse = await Course.findOneAndUpdate(
+      { _id: courseId, teacherId },
       { isDeleted: true }
     );
 
-    console.log("deletedGig:", deletedGig);
-
-    if (deletedGig) {
+    if (deletedCourse) {
       return {
         status: "SUCCESS",
-        message: "Gig deleted successfully",
-        data: deletedGig,
+        message: "Course deleted successfully",
+        data: deletedCourse,
       };
     } else {
       return {
@@ -156,7 +154,6 @@ const deleteGig = async (teacherId, gigId) => {
 };
 
 const addNewReview = async (_id, user, rating, comment) => {
-  // const { rating, comment } = body.reviews;
 
   try {
     const updatedGig = await Course.findByIdAndUpdate(_id, {
@@ -166,6 +163,8 @@ const addNewReview = async (_id, user, rating, comment) => {
     // console.log(updatedGig);
 
     if (updatedGig) {
+      await incrementNumOfReviews(_id);
+
       return {
         status: "SUCCESS",
         data: updatedGig,
@@ -215,15 +214,17 @@ const updateExistingReview = async (_id, user, body) => {
   }
 };
 
-const deleteReview = async (id, user) => {
+const deleteReview = async (_id, user) => {
   try {
     const updatedGig = await Course.findByIdAndUpdate(
-      id,
+      _id,
       { $pull: { reviews: { user } } },
       { new: true }
     );
 
     if (updatedGig) {
+      await Course.findByIdAndUpdate(_id, { $inc: { numOfReviews: -1 } });
+
       return {
         status: "SUCCESS",
         data: updatedGig,
@@ -236,6 +237,20 @@ const deleteReview = async (id, user) => {
   } catch (error) {
     return {
       status: "SORRY: Something went wrong",
+      error: error.message,
+    };
+  }
+};
+
+const incrementNumOfReviews = async (courseId) => {
+  try {
+    await Course.findByIdAndUpdate(courseId, { $inc: { numOfReviews: 1 } });
+    return {
+      status: "SUCCESS",
+    };
+  } catch (error) {
+    return {
+      status: "FAILED",
       error: error.message,
     };
   }
@@ -262,6 +277,7 @@ const listCourse = async (page, perPage) => {
 
 const searchCourses = async (category, maxPrice, sortBy) => {
   try {
+    console.log(category)
     const query = {};
 
     if (category) {
@@ -279,8 +295,9 @@ const searchCourses = async (category, maxPrice, sortBy) => {
     } else if (sortBy === "newest") {
       sortOptions.createdAt = -1; // Sort by newest
     } else if (sortBy === "top_trending") {
-      sortOptions["reviews.rating"] = -1; // Sort by top trending (rating)
+      sortOptions["numOfReviews"] = -1; // Sort by top trending (numOfReviews)
     }
+    console.log(query)
 
     const courses = await Course.find(query)
       .populate("teacherId", "firstName lastName")
@@ -297,51 +314,78 @@ const searchCourses = async (category, maxPrice, sortBy) => {
   }
 };
 
-const listingtopCourse = async (_id) => {
-  try {
-    const updatedCourse = await Course.findByIdAndUpdate(
-      _id,
-      { $inc: { numOfSales: 1 } },
-      { new: true }
-    );
 
-    if (!updatedCourse) {
-      return { status: "NOT_FOUND", message: "Course not found" };
-    } else {
-      return { status: "SUCCESS", data: updatedCourse };
+const teacherAccount = async (courseId) => {
+  try {
+    // Using Aggregation to fetch teacher's Stripe account by courseId
+    const aggregationResult = await Course.aggregate([
+      {
+        $match: { _id: mongoose.Types.ObjectId(courseId) },
+      },
+      {
+        $lookup: {
+          from: "users", // The name of the User collection
+          localField: "teacherId",
+          foreignField: "_id",
+          as: "teacher",
+        },
+      },
+      {
+        $unwind: "$teacher",
+      },
+      {
+        $project: {
+          _id: 0,
+          teacherStripeAccountId: "$teacher.stripeAccountId",
+        },
+      },
+    ]);
+
+    if (aggregationResult.length === 0) {
+      return {
+        status: "FAILED",
+        error: "Course not found or teacher not found for this course",
+      };
     }
-  } catch (error) {
+
+    const teacherStripeAccountId = aggregationResult[0].teacherStripeAccountId;
+
+    if(teacherStripeAccountId){
+      return {
+      
+      status: "SUCCESS",
+      data:teacherStripeAccountId,
+    }
+  }
+  else{
+     return {
+      status: "FAILED",
+      error: "An error occurred while fetching teacher's Stripe account",
+    }
+  }
+  }
+   catch (error) {
+    console.error(error);
     return {
-      status: "SORRY: Something went wrong",
-      error: error.message,
+      status: "FAILED",
+      error: "SORRY!Something went wrong",
     };
   }
 };
 
-const getTopCourse = async () => {
-  try {
-    const topCourses = await Course.find({}).sort({ numOfSales: -1 }).limit(10);
 
-    res.status(200).send({ status: "success", data: topCourses });
-  } catch (error) {
-    return {
-      status: "SORRY: Something went wrong",
-      error: error.message,
-    };
-  }
-};
 module.exports = {
   saveCourse,
   getAllCourse,
   getTeacherCourses,
   getCourseById,
-  deleteGig,
+  deleteCourse,
   updateCourse,
   updateExistingReview,
   addNewReview,
   deleteReview,
+  incrementNumOfReviews,
   listCourse,
   searchCourses,
-  listingtopCourse,
-  getTopCourse,
+  teacherAccount
 };

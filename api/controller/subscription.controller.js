@@ -1,17 +1,26 @@
 const SubscriptionModel = require("../model/subscription.model");
 const CourseModel = require("../model/course.model");
-const {refundPayment,transferToTeacher,createPaymentIntent,capturePayment} = require("../helper/stripe.helper")
+const {
+  refundPayment,
+  transferToTeacher,
+  createPaymentIntent,
+  capturePayment,
+} = require("../helper/stripe.helper");
 const zeroSetter = require("../helper/zeroSetter.helper");
 const moment = require("moment");
+const Subscription = require("../schema/subcription.schema");
 
-const stripe = require("stripe")('sk_test_51NpSaDC44tKvGwWA8hqaaDH5TUcJypQjZm1ygDYUYX4gUjBNQUB7Swea652dKKq6odCdFyzKtJYy8eg7KExl3vuk009AdvchfR')
+const stripe = require("stripe")(
+  "sk_test_51NpSaDC44tKvGwWA8hqaaDH5TUcJypQjZm1ygDYUYX4gUjBNQUB7Swea652dKKq6odCdFyzKtJYy8eg7KExl3vuk009AdvchfR"
+);
 
 const createSubscription = async (req, res) => {
-
   try {
-
     const { _courseId, classStartTime, classEndTime } = req.body;
-    const studentId = req.decodedToken._id;
+    // const studentId = req.decodedToken._id;
+
+    const studentId = req.body.studentId;
+    const paymentMethodId = req.body.paymentMethodId;
 
     let requestedStartTime = zeroSetter(classStartTime, "date");
     let requestedEndTime = zeroSetter(classEndTime, "date");
@@ -23,14 +32,23 @@ const createSubscription = async (req, res) => {
       return res.status(404).json({ message: "Course not found." });
     }
 
-    const paymentAmount = course?.data?.fee * 100;
-    
+    const paymentAmount = Math.round(course?.data?.fee * 100);
+
     // Create a Payment Intent with Stripe
     const paymentIntent = await createPaymentIntent(
       _courseId,
       studentId,
-      paymentAmount
+      paymentAmount,
+      paymentMethodId
     );
+
+    // Calculate the subscription start and end dates
+    const subscriptionStartDate = new Date();
+    const subscriptionEndDate = new Date();
+    subscriptionEndDate.setDate(subscriptionStartDate.getDate() + 7);
+
+    // Store the subscription creation timestamp
+    const subscriptionCreationDate = new Date();
 
     const subscription = {
       _courseId,
@@ -45,11 +63,18 @@ const createSubscription = async (req, res) => {
           isCompleted: false,
         })),
       })),
-      paymentIntentId: paymentIntent.id,  
-      }
- 
+      stripeAccount: {
+        paymentIntentId: paymentIntent.id,
+        subscriptionStartDate,
+        subscriptionEndDate,
+        subscriptionCreationDate,
+      },
+    };
+
     // Create the subscription with calculated start and end dates
-    const newSubscription = await SubscriptionModel.createSubscription(subscription);
+    const newSubscription = await SubscriptionModel.createSubscription(
+      subscription
+    );
 
     if (newSubscription) {
       return res.status(201).json({
@@ -68,42 +93,43 @@ const createSubscription = async (req, res) => {
   }
 };
 
-
 const updateSubscriptionStatus = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
     const { status } = req.body;
     let { classStartTime, classEndTime } = req.body;
 
-    const user = req.decodedToken;
+    const user = req.decodedToken._id;
+    let subscriptionFound;
 
-    if (!user || user.role !== "TEACHER") {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    const condition = {
+      _id: subscriptionId,
+    };
+    let update = {
+      status: status,
+    };
+    let options = {
+      new: true,
+    };
+    subscriptionFound = await SubscriptionModel.getSubscriptionById(
+      subscriptionId
+    );
 
-    if (status === "ACTIVE") {
-      let subscriptionFound;
+    if (status === "APPROVED") {
+      if (subscriptionFound.status === "SUCCESS") {
+        const course = subscriptionFound?.data?._courseId;
+        const teacherId = course.teacherId;
 
-      if (!classStartTime || !classEndTime) {
-        subscriptionFound = await SubscriptionModel.getSubscriptionById(
-          subscriptionId
-        );
-
-        if (subscriptionFound.status === "SUCCESS") {
-          const course = subscriptionFound?.data?._courseId;
-          const teacherId = course.teacherId;
-
-          if (String(course.teacherId) !== String(user._id)) {
-            return res.status(403).json({ message: "Access denied" });
-          }
-
-          classStartTime = subscriptionFound?.data?.classStartTime;
-          classEndTime = subscriptionFound?.data?.classEndTime;
-        } else {
-          return res
-            .status(404)
-            .send({ message: "FAILED", error: subscriptionFound.error });
+        if (String(course.teacherId) !== String(user._id)) {
+          return res.status(403).json({ message: "Access denied" });
         }
+
+        classStartTime = subscriptionFound?.data?.classStartTime;
+        classEndTime = subscriptionFound?.data?.classEndTime;
+      } else {
+        return res
+          .status(404)
+          .send({ message: "FAILED", error: subscriptionFound.error });
       }
 
       const slotAvailabilityResult =
@@ -139,16 +165,6 @@ const updateSubscriptionStatus = async (req, res) => {
       }
     }
 
-    const condition = {
-      _id: subscriptionId,
-    };
-    let update = {
-      status: status,
-    };
-    let options = {
-      new: true,
-    };
-
     const updateResult = await SubscriptionModel.updateSubscription(
       condition,
       update,
@@ -156,21 +172,70 @@ const updateSubscriptionStatus = async (req, res) => {
     );
 
     if (updateResult.status === "SUCCESS") {
-      if (status === 'ACTIVE') {
-        const paymentIntentId = subscriptionFound.paymentIntentId;
+      if (status === "APPROVED") {
+        const paymentIntentId =
+          updateResult?.data?.stripeAccount.paymentIntentId;
+        stripe.paymentIntents.retrieve(
+          paymentIntentId,
+          (err, paymentIntent) => {
+            if (err) {
+              console.error("Error retrieving PaymentIntent:", err);
+            } else {
+              console.log("PaymentIntent Status:", paymentIntent.status);
+            }
+          }
+        );
+       
         const capturedPayment = await capturePayment(paymentIntentId);
-  
-        if (capturedPayment.status === 'succeeded') {
-          // Payment capture succeeded, update your subscription status
-          // ... update your subscription status logic ...
+        const sub = await Subscription.findByIdAndUpdate(
+          subscriptionId,
+          { $set: { "stripeAccount.paymentStatus": "PAID" } },
+          { new: true }
+        );
+        console.log(sub)
+        return;
+
+        // Check if payment capture was successful
+        if (capturedPayment.status === "succeeded") {
+          const teacherStripeAccountResult = await CourseModel.teacherAccount(
+            subscriptionFound?.data?._courseId
+          );
+
+          if (teacherStripeAccountResult.status === "SUCCESS") {
+            const teacherStripeAccountId =
+              teacherStripeAccountResult?.data?.teacherStripeAccountId;
+
+            // Transfer the captured payment to the teacher's Stripe account
+            const transfer = await transferToTeacher(
+              capturedPayment.id, // Use the captured payment's ID
+              teacherStripeAccountId
+            );
+
+            if (transfer.status === "completed") {
+              return res.status(200).json({
+                message: "SUCCESS",
+                description: "Fund transfer successfully",
+              });
+            } else {
+              return res.status(500).json({
+                message: "FAILED",
+                description: "Funds transfer to teacher failed",
+              });
+            }
+          } else {
+            return res.status(500).json({
+              message: "FAILED",
+              description: "Failed to fetch teacher's Stripe account",
+            });
+          }
         } else {
           return res.status(500).json({
-            message: 'FAILED',
-            description: 'Payment capture failed',
+            message: "FAILED",
+            description: "Payment capture failed",
           });
         }
       }
-  
+
       return res.status(200).json({
         message: "SUCCESS",
         data: updateResult.data,
@@ -189,6 +254,7 @@ const updateSubscriptionStatus = async (req, res) => {
   }
 };
 
+//teacher cancel the subscription
 const cancelSubscription = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
@@ -199,17 +265,38 @@ const cancelSubscription = async (req, res) => {
       });
     }
 
-    const cancelResult = await SubscriptionModel.cancelSubscription(
+    const subscription = await SubscriptionModel.getSubscriptionById(
       subscriptionId
     );
 
-    if (cancelResult.status === "SUCCESS") {
+    if (!subscription) {
+      return res.status(404).json({
+        message: "Subscription not found",
+      });
+    }
+
+    //this condition for cancel subscription and refund payment to studentAccount
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    if (subscription.subscriptionCreationDate < sevenDaysAgo) {
+      return res.status(403).json({
+        message:
+          "You can't cancel this subscription, the refund window has passed.",
+      });
+    }
+    const refundResult = await refundPayment(subscription.paymentIntentId);
+
+    if (refundResult.status === "success") {
+      // Update the subscription status to reflect cancellation
+      await SubscriptionModel.cancelSubscription(subscriptionId);
+
       return res.status(200).json({
-        message: "Subscription canceled successfully.",
+        message: "Subscription canceled and refunded successfully.",
       });
     } else {
       return res.status(500).json({
-        message: "Your subscription is ACTIVE cannot cancel.",
+        message: "Failed to refund the payment.",
       });
     }
   } catch (error) {
@@ -220,33 +307,35 @@ const cancelSubscription = async (req, res) => {
   }
 };
 
+//teacher get his own subscription
 const teacherSubscriptions = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
     const result = await SubscriptionModel.teacherSubscriptions(teacherId);
 
     if (result.status == "SUCCESS") {
-      return res.status(200).send({ data: result.data });
+      return res.status(200).json({ data: result.data });
     } else {
-      return res.status(422).send({ message: "OOPS!Something went wrong" });
+      return res.status(422).json({ message: "OOPS!Something went wrong" });
     }
   } catch (error) {
-    return res.status(500).send({ message: "Internal server error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
+//student eg==get his own subsciption
 const studentSubscription = async (req, res) => {
   try {
     const studentAppointments = await SubscriptionModel.studentAppointments(
       req.decodedToken._id
     );
     if (studentAppointments) {
-      return res.send({
+      return res.json({
         message: "Student Subscription Fetched Successfully.",
         data: studentAppointments.data,
       });
     } else {
-      return res.send({ message: "No Subscription Found" });
+      return res.json({ message: "No Subscription Found" });
     }
   } catch (error) {
     console.error(error);
@@ -254,6 +343,7 @@ const studentSubscription = async (req, res) => {
   }
 };
 
+//teacher update course stat
 const updateCourseStat = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
@@ -267,18 +357,19 @@ const updateCourseStat = async (req, res) => {
     );
 
     if (result.status === "SUCCESS") {
-      res.status(201).send({
+      res.status(201).json({
         message: "Topic marked as completed",
         data: result.data,
       });
     } else {
-      res.status(404).send({ message: "SORRY: Something Went Wrong" });
+      res.status(404).json({ message: "SORRY: Something Went Wrong" });
     }
   } catch (error) {
-    res.status(500).send({ error: "SORRY: Something Went Wrong." });
+    res.status(500).json({ error: "SORRY: Something Went Wrong." });
   }
 };
 
+//webhook for listening the subscription cancel
 const handleSubscriptionWebhook = async (req, res) => {
   try {
     const event = req.body;
@@ -286,9 +377,6 @@ const handleSubscriptionWebhook = async (req, res) => {
     switch (event.type) {
       case "payment_intent.succeeded":
         const paymentIntent = event.data.object;
-        const courseId = paymentIntent.metadata.courseId;
-        const studentId = paymentIntent.metadata.studentId;
-
         // Check if teacher approved within 7 days (adjust timestamp as needed)
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         if (new Date(paymentIntent.created * 1000) < sevenDaysAgo) {
@@ -296,13 +384,6 @@ const handleSubscriptionWebhook = async (req, res) => {
           await refundPayment(paymentIntent.id);
 
           // Update subscription status to "REFUNDED"
-        } else {
-          // Payment is successful, teacher approved
-          // Handle payment to teacher
-          const teacherStripeAccountId = "teacher_stripe_account_id"; // Replace with actual teacher's Stripe account ID
-          await transferToTeacher(paymentIntent, teacherStripeAccountId);
-
-          // Update subscription status to "APPROVED"
         }
         break;
 
@@ -311,14 +392,12 @@ const handleSubscriptionWebhook = async (req, res) => {
         break;
     }
 
-    res.status(200).send("Webhook received and processed successfully.");
+    res.status(200).json("Webhook received and processed successfully.");
   } catch (error) {
     console.error(error);
-    res.status(500).send("Webhook processing failed.");
+    res.status(500).json("Webhook processing failed.");
   }
 };
-
-
 
 module.exports = {
   createSubscription,
@@ -328,5 +407,4 @@ module.exports = {
   studentSubscription,
   updateCourseStat,
   handleSubscriptionWebhook,
-  
 };

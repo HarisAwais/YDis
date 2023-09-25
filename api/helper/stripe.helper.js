@@ -1,7 +1,8 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // Replace with your Stripe secret key
 
-const createPaymentIntent = async (courseId, studentId, paymentAmount) => {
+const createPaymentIntent = async (courseId, studentId, paymentAmount,paymentMethodId) => {
   try {
+    // Create a Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: paymentAmount,
       currency: "usd",
@@ -11,7 +12,10 @@ const createPaymentIntent = async (courseId, studentId, paymentAmount) => {
         courseId: courseId,
         studentId: studentId,
       },
+      payment_method: paymentMethodId, 
+
     });
+
     return paymentIntent;
   } catch (error) {
     console.error("Error creating payment intent:", error);
@@ -21,13 +25,27 @@ const createPaymentIntent = async (courseId, studentId, paymentAmount) => {
 
 const capturePayment = async (paymentIntentId) => {
   try {
-    const paymentIntent = await stripe.paymentIntents.capture(paymentIntentId);
-    return paymentIntent;
+    // Confirm the PaymentIntent
+    await stripe.paymentIntents.confirm(paymentIntentId);
+
+    // Retrieve the PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Check if the PaymentIntent status is "requires_capture"
+    if (paymentIntent.status === "requires_capture") {
+      // Capture the payment
+      const capturedPayment = await stripe.paymentIntents.capture(paymentIntentId);
+      return capturedPayment;
+    } else {
+      // Handle other PaymentIntent statuses if needed
+      return paymentIntent;
+    }
   } catch (error) {
-    console.error('Error capturing payment:', error);
+    console.error("Error capturing payment:", error);
     throw error;
   }
 };
+
 
 const refundPayment = async (paymentIntentId) => {
   try {
@@ -40,12 +58,13 @@ const refundPayment = async (paymentIntentId) => {
 
 const transferToTeacher = async (paymentIntent, teacherStripeAccountId) => {
   try {
+    const chargeId = paymentIntent.charges.data[0].id;
     const transfer = await stripe.transfers.create({
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       destination: teacherStripeAccountId,
       description: "Payment for course",
-      source_transaction: paymentIntent.charges.data[0].id,
+      source_transaction: chargeId,
     });
     return transfer;
   } catch (error) {
@@ -58,5 +77,5 @@ module.exports = {
   createPaymentIntent,
   refundPayment,
   transferToTeacher,
-  capturePayment
+  capturePayment,
 };

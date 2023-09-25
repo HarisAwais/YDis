@@ -3,19 +3,26 @@ const {
   generateCertificatePdf,
   calculateScorePercentage,
 } = require("../helper/generatePdf.helper");
-
 const createQuiz = async (req, res) => {
   try {
-    const { title, courseId, questions, startTime, endTime } = req.body;
     const teacherId = req.decodedToken._id;
 
+    // Encode the questions before saving them to the database
+    const encodedQuestions = req.body.questions.map((question) => {
+      const encodedOptions = question.options.map((option) =>
+        Buffer.from(option).toString('base64')
+      );
+
+      return {
+        ...question,
+        options: encodedOptions,
+      };
+    });
+
     const newQuiz = {
-      title,
-      courseId,
-      questions,
       createdBy: teacherId,
-      startTime,
-      endTime,
+      ...req.body,
+      questions: encodedQuestions, 
     };
 
     // Save the quiz to the database
@@ -30,6 +37,7 @@ const createQuiz = async (req, res) => {
     res.status(500).json({ message: "Failed to create quiz." });
   }
 };
+
 
 const updateQuiz = async (req, res) => {
   try {
@@ -86,7 +94,7 @@ const submitQuiz = async (req, res) => {
 
     const quiz = await QuizModel.quizById(quizId);
 
-    const score = QuizModel.calculateScore(quiz.data?.questions, answers);
+    const score = QuizModel.calculateScore(quiz?.data?.questions, answers);
 
     const studentSubmission = {
       studentId,
@@ -129,12 +137,13 @@ const submitQuiz = async (req, res) => {
 const studentsWhoTookQuiz = async (req, res) => {
   try {
     const quizId = req.params.quizId;
+   
     const quizResponse = await QuizModel.quizById(quizId);
 
-    if (quizResponse.status === "NOT_FOUND") {
+    if (!quizResponse) {
       return res.status(404).json({
-        status: "FAILED",
-        message: "Quiz not found",
+        status: quizResponse.status,
+        message: quizResponse.message,
       });
     }
 
@@ -168,10 +177,68 @@ const studentsWhoTookQuiz = async (req, res) => {
   }
 };
 
+const getCertificate = async (req, res) => {
+  try {
+    const {studentId} = req.body
+    // console.log(req.decodedToken)
+    // return
+    // const studentId = req.decodedToken._id; 
+
+    const quizData = await QuizModel.getCertificate(studentId);
+
+
+    if (quizData.status === "SUCCESS") {
+      const { studentName, teacherName, courseName, score, questions } = quizData.data;
+
+      // Calculate percentage and perform actions based on it
+      const maxPossibleScore = questions.length;
+      const percentage = (score / maxPossibleScore) * 100;
+      const threshold = 80;
+
+      if (percentage >= threshold) {
+        const pdfFilename = `certificate_${quizData?.data?._id}.pdf`;
+
+        const pdfPath = await generateCertificatePdf(
+          studentName,
+          teacherName,
+          courseName,
+          new Date().toDateString(),
+          pdfFilename
+        );
+
+        // Provide the certificate PDF as a download
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${pdfFilename}"`
+        );
+        res.sendFile(pdfPath);
+      } else {
+        res.status(403).json({
+          message: "Sorry, your percentage does not meet our requirements.",
+        });
+      }
+    } else {
+      res.status(403).json({
+        message: "Access denied. You are not authorized to access this certificate.",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+
+
+
 module.exports = {
   createQuiz,
   updateQuiz,
   deleteQuiz,
   studentsWhoTookQuiz,
   submitQuiz,
+  getCertificate
 };

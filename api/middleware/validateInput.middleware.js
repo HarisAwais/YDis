@@ -9,6 +9,19 @@ const {
 // params) and returns a validation function which validates the
 // schema upon invocation
 const validateInput = (inputSchema, schemaScope) => {
+  // Check if schemaScope is not defined or empty
+  if (typeof schemaScope !== 'string' || !schemaScope.trim()) {
+    return (req, res, next) => {
+      return res.status(400).json({
+        hasError: true,
+        message: 'ERROR: Invalid schemaScope.',
+        error: {
+          error: 'schemaScope is not defined or empty.',
+        },
+      });
+    };
+  }
+
   // defining a method to validate incoming request body data
   const requestBodyValidator = async (req, res, next) => {
     try {

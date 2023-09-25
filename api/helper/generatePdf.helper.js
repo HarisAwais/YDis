@@ -10,33 +10,88 @@ const generateCertificatePdf = async (studentName, teacherName, courseName, comp
         const page = await browser.newPage();
 
         // HTML content for the certificate
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Certificate of Completion</title>
-            </head>
-            <body>
-                <h1>Certificate of Completion</h1>
-                <p>This is to certify that</p>
-                <h2>${studentName}</h2>
-                <p>has successfully completed the course:</p>
-                <h3>${courseName}</h3>
-                <p>taught by:</p>
-                <h3>${teacherName}</h3>
-                <p>on this date:</p>
-                <p>${completionDate}</p>
-            </body>
-            </html>
+        const htmlContent = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Certificate of Completion</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                }
+                .certificate {
+                    border: 2px solid #0073e6;
+                    padding: 20px;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background-color: #f0f0f0;
+                }
+                .title {
+                    font-size: 24px;
+                    color: #0073e6;
+                    margin-bottom: 20px;
+                }
+                .subtitle {
+                    font-size: 18px;
+                    color: #333;
+                    margin-bottom: 30px;
+                }
+                .name {
+                    font-size: 36px;
+                    font-weight: bold;
+                    color: #333;
+                }
+                .course {
+                    font-size: 20px;
+                    margin-top: 20px;
+                }
+                .instructor {
+                    font-size: 18px;
+                    color: #555;
+                }
+                .date {
+                    font-size: 16px;
+                    color: #777;
+                    margin-top: 20px;
+                }
+                .signature {
+                    margin-top: 50px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="certificate">
+                <div class="title">Certificate of Completion</div>
+                <div class="subtitle">This is to certify that</div>
+                <div class="name">${studentName}</div>
+                <div class="course">has successfully completed the course:</div>
+                <div class="course">${courseName}</div>
+                <div class="instructor">taught by:</div>
+                <div class="name">${teacherName}</div>
+                <div class="date">on this date: ${completionDate}</div>
+                <div class=>
+                <p>from:</p>
+                <h1> YDI</h1>
+                </div>
+            </div>
+        </body>
+        </html>
         `;
 
         await page.setContent(htmlContent);
-        const pdfBuffer = await page.pdf({ format: 'A4' });
-
+        const pdfBuffer = await page.pdf({ 
+          format: 'Letter', // Change to a smaller format like 'Letter' or 'Legal'
+          margin: {
+              top: '10mm',    // Narrower top margin
+              right: '10mm',  // Narrower right margin
+              bottom: '10mm', // Narrower bottom margin
+              left: '10mm',   // Narrower left margin
+          },
+      });
         // Specify the directory and filename for saving the PDF
-        const pdfDirectory = path.join(__dirname, 'public', 'pdf'); // Change as needed
+        const pdfDirectory = path.join(__dirname, '../../public', 'pdf'); 
         const pdfPath = path.join(pdfDirectory, pdfFilename);
 
         // Ensure the directory exists

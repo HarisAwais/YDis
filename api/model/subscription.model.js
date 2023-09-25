@@ -3,6 +3,7 @@ const Course = require("../schema/course.schema");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const zeroSetter = require("../helper/zeroSetter.helper");
+
 const createSubscription = async (subscriptionData) => {
   try {
     const subscription = new Subscription(subscriptionData);
@@ -20,7 +21,7 @@ const createSubscription = async (subscriptionData) => {
     }
   } catch (error) {
     return {
-      status: "INTERNAL_SERVER_ERROR",
+      status: "SORRY:Something went wrong",
       error: error.message,
     };
   }
@@ -299,6 +300,51 @@ const completedTopics = async (
   }
 };
 
+const teacherAccount = async()=>{
+// Using Aggregation
+const aggregationResult = await Subscription.aggregate([
+  {
+    $match: { _id: mongoose.Types.ObjectId(subscriptionId) },
+  },
+  {
+    $lookup: {
+      from: "courses", // The name of the Course collection
+      localField: "_courseId",
+      foreignField: "_id",
+      as: "course",
+    },
+  },
+  {
+    $unwind: "$course",
+  },
+  {
+    $lookup: {
+      from: "users", // The name of the User collection
+      localField: "course.teacherId",
+      foreignField: "_id",
+      as: "teacher",
+    },
+  },
+  {
+    $unwind: "$teacher",
+  },
+  {
+    $project: {
+      _id: 0,
+      teacherStripeAccountId: "$teacher.stripeAccountId",
+    },
+  },
+]);
+
+if (aggregationResult.length === 0) {
+  return res.status(404).json({ message: "Subscription not found" });
+}
+
+const teacherStripeAccountId = aggregationResult[0].teacherStripeAccountId;
+
+// Now you have the teacherStripeAccountId
+
+}
 module.exports = {
   createSubscription,
   getSubscriptionById,
@@ -309,4 +355,5 @@ module.exports = {
   studentAppointments,
   calculateCourseDuration,
   completedTopics,
+  // teacherAccount
 };
