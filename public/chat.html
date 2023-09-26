@@ -1,102 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Socket.io Chat</title>
-  <style>
-    /* Style for the typing indicator */
-    .typing-indicator {
-      font-style: italic;
-      color: #999;
-    }
-  </style>
-</head>
-<body>
-  <h1>Socket.io Chat</h1>
-  <!-- Add an input field for receiver's ID -->
-  <input type="text" id="receiver-input" placeholder="Receiver ID" />
-  <div
-    id="chat-box"
-    style="
-      border: 1px solid #ccc;
-      padding: 10px;
-      height: 300px;
-      overflow-y: scroll;
-    "
-  ></div>
-  <input type="text" id="message-input" placeholder="Type your message" />
-  <button id="send-button">Send</button>
-  <div id="typing-indicator" class="typing-indicator"></div> <!-- Typing indicator -->
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-  <!-- Include the Socket.io library -->
-  <script>
-    const userId = "64fee0f4119a9c32f0315e0c"; // Replace with the actual user ID or fetch it dynamically
-    const socket = io.connect("http://localhost:5000", {
-      query: {
-        id: userId,
-      },
-    }); // Connect to your Socket.io server
-
-    const chatBox = document.getElementById("chat-box");
-    const messageInput = document.getElementById("message-input");
-    const sendButton = document.getElementById("send-button");
-    const receiverInput = document.getElementById("receiver-input"); // Get the receiver's input field
-    const typingIndicator = document.getElementById("typing-indicator"); // Typing indicator
-
-    socket.on("connect", () => {
-      console.log("Socket.io connection established.");
-    });
-
-    socket.on("messageReceived", (message) => {
-      appendMessage(message.sender + ": " + message.text);
-    });
-
-    socket.on("typing", (data) => {
-      if (data.isTyping) {
-        typingIndicator.textContent = "Typing..."; // Show typing indicator
-      } else {
-        typingIndicator.textContent = ""; // Clear typing indicator
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.io Chat</title>
+    <style>
+      /* Style for the typing indicator */
+      .typing-indicator {
+        font-style: italic;
+        color: #999;
       }
-    });
+    </style>
+  </head>
+  <body>
+    <h1>Socket.io Chat</h1>
+    <!-- Add an input field for receiver's ID -->
+    <input type="text" id="receiver-input" placeholder="Receiver ID" />
+    <div
+      id="chat-box"
+      style="
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: scroll;
+      "
+    ></div>
+    <input type="text" id="message-input" placeholder="Type your message" />
+    <button id="send-button">Send</button>
+    <div id="typing-indicator" class="typing-indicator"></div>
+    <!-- Typing indicator -->
 
-    socket.on("disconnect", () => {
-      console.log("Socket.io connection closed.");
-    });
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <!-- Include the Socket.io library -->
+    <script>
+      const userId = "64fee0f4119a9c32f0315e0c"; // Replace with the actual user ID or fetch it dynamically
+      const socket = io.connect("http://localhost:5000", {
+        query: {
+          id: userId,
+        },
+      }); // Connect to your Socket.io server
 
-    messageInput.addEventListener("input", () => {
-      const receiverId = receiverInput.value.trim();
-      if (messageInput.value.trim() !== "") {
-        socket.emit("typing", { receiverId, isTyping: true }); // Send typing indicator
-      } else {
-        socket.emit("typing", { receiverId, isTyping: false }); // Send stopped typing indicator
-      }
-    });
+      const chatBox = document.getElementById("chat-box");
+      const messageInput = document.getElementById("message-input");
+      const sendButton = document.getElementById("send-button");
+      const receiverInput = document.getElementById("receiver-input"); // Get the receiver's input field
+      const typingIndicator = document.getElementById("typing-indicator"); // Typing indicator
 
-    sendButton.addEventListener("click", () => {
-      const receiverId = receiverInput.value.trim(); // Get the receiver's ID from the input field and trim whitespace
-      const messageText = messageInput.value.trim(); // Trim whitespace from the message
+      socket.on("connect", () => {
+        console.log("Socket.io connection established.");
+      });
 
-      if (receiverId && messageText) {
-        const message = {
-          text: messageText,
-          senderId: "64fee0f4119a9c32f0315e0c", // Replace with the sender's ID
-          receiverId: receiverId, // Use the entered receiver's ID
-        };
-        socket.emit("chat", message); // Send the message to the server
-        appendMessage("You to " + receiverId + ": " + messageText); // Display the sent message
-        messageInput.value = ""; // Clear the message input field
-        receiverInput.value = ""; // Clear the receiver input field
-      }
-    });
+      socket.on("messageReceived", (message) => {
+        appendMessage(message.sender + ": " + message.text);
+      });
 
-    function appendMessage(message) {
-      const messageElement = document.createElement("div");
-      messageElement.textContent = message;
-      chatBox.appendChild(messageElement);
-      chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom of the chat box
-    }
-  </script>
-</body>
+      socket.on("typing", (data) => {
+        if (data.isTyping) {
+          typingIndicator.textContent = "Typing..."; // Show typing indicator
+        } else {
+          typingIndicator.textContent = ""; // Clear typing indicator
+        }
+      });
+
+      socket.on("disconnect", () => {
+        console.log("Socket.io connection closed.");
+      });
+
+      messageInput.addEventListener("input", () => {
+        const receiverId = receiverInput.value.trim();
+        if (messageInput.value.trim() !== "") {
+          socket.emit("typing", { receiverId, isTyping: true }); // Send typing indicator
+        } else {
+          socket.emit("typing", { receiverId, isTyping: false }); // Send stopped typing indicator
+        }
+      });
+
+      sendButton.addEventListener("click", () => {
+        const receiverId = receiverInput.value.trim(); // Get the receiver's ID from the input field and trim whitespace
+        const messageText = messageInput.value.trim(); // Trim whitespace from the message
+
+        if (receiverId && messageText) {
+          const message = {
+            text: messageText,
+            senderId: "64fee0f4119a9c32f0315e0c", // Replace with the sender's ID
+            receiverId: receiverId, // Use the entered receiver's ID
+          };
+          socket.emit("chat", message); // Send the message to the server
+          appendMessage("You to " + receiverId + ": " + messageText); // Display the sent message
+          messageInput.value = ""; // Clear the message input field
+          receiverInput.value = ""; // Clear the receiver input field
+        }
+      });
+
+
+        // Scroll to the bottom of the chat box
+        function appendMessage(message) {
+          const messageElement = document.createElement("div");
+          messageElement.textContent = message;
+          chatBox.appendChild(messageElement);
+          chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom of the chat box
+        }
+
+        // Function to handle receiving a new message
+        function handleMessageReceived(message) {
+          appendMessage(message.sender + ": " + message.text);
+        }
+
+        // Function to handle the typing indicator
+        function handleTypingIndicator(data) {
+          if (data.isTyping) {
+            typingIndicator.textContent = "Typing..."; // Show typing indicator
+          } else {
+            typingIndicator.textContent = ""; // Clear typing indicator
+          }
+        }
+
+        // Add event listeners for receiving messages and typing indicators
+        socket.on("messageReceived", handleMessageReceived);
+        socket.on("typing", handleTypingIndicator);
+      
+    </script>
+  </body>
 </html>

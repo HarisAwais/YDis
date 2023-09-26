@@ -123,24 +123,25 @@ const cancelSubscription = async (subscriptionId) => {
       return { status: "FAILED", message: "Subscription not found" };
     }
 
-    // if (subscription.status == "ACTIVE") {
-    //   return { status: "SORRY:Your Subscription is active" };
-    // }
+    if (subscription.status === "APPROVED") {
+      return { status: "APPROVED", message: "Your subscription is already approved." };
+    }
 
     const cancelSubscription = await Subscription.findByIdAndRemove(
       subscriptionId
     );
 
-    if (!cancelSubscription) {
-      return { status: "FAILED", message: "Failed to cancel subscription" };
-    } else {
+    if (cancelSubscription) {
       return { status: "SUCCESS", message: "Subscription cancelled" };
+    } else {
+      return { status: "FAILED", message: "Failed to cancel subscription" };
     }
   } catch (error) {
     console.error(error);
     return { status: "SORRY: Something went wrong" };
   }
 };
+
 
 const updateSubscription = async (subscriptionId, update, options) => {
   try {
@@ -355,5 +356,5 @@ module.exports = {
   studentAppointments,
   calculateCourseDuration,
   completedTopics,
-  // teacherAccount
+  teacherAccount
 };

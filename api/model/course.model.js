@@ -1,5 +1,5 @@
 const Course = require("../schema/course.schema");
-const { message } = require("../validators/course.validator");
+const mongoose = require("mongoose")
 //create gig
 const saveCourse = async (generatedId,courseData) => {
   try {
@@ -320,7 +320,7 @@ const teacherAccount = async (courseId) => {
     // Using Aggregation to fetch teacher's Stripe account by courseId
     const aggregationResult = await Course.aggregate([
       {
-        $match: { _id: mongoose.Types.ObjectId(courseId) },
+        $match: { _id: new mongoose.Types.ObjectId(courseId) },
       },
       {
         $lookup: {
@@ -349,6 +349,7 @@ const teacherAccount = async (courseId) => {
     }
 
     const teacherStripeAccountId = aggregationResult[0].teacherStripeAccountId;
+    console.log(teacherStripeAccountId)
 
     if(teacherStripeAccountId){
       return {

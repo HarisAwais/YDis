@@ -1,6 +1,11 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY); // Replace with your Stripe secret key
 
-const createPaymentIntent = async (courseId, studentId, paymentAmount,paymentMethodId) => {
+const createPaymentIntent = async (
+  courseId,
+  studentId,
+  paymentAmount,
+  paymentMethodId
+) => {
   try {
     // Create a Payment Intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -12,8 +17,7 @@ const createPaymentIntent = async (courseId, studentId, paymentAmount,paymentMet
         courseId: courseId,
         studentId: studentId,
       },
-      payment_method: paymentMethodId, 
-
+      payment_method: paymentMethodId,
     });
 
     return paymentIntent;
@@ -34,7 +38,9 @@ const capturePayment = async (paymentIntentId) => {
     // Check if the PaymentIntent status is "requires_capture"
     if (paymentIntent.status === "requires_capture") {
       // Capture the payment
-      const capturedPayment = await stripe.paymentIntents.capture(paymentIntentId);
+      const capturedPayment = await stripe.paymentIntents.capture(
+        paymentIntentId
+      );
       return capturedPayment;
     } else {
       // Handle other PaymentIntent statuses if needed
@@ -46,7 +52,6 @@ const capturePayment = async (paymentIntentId) => {
   }
 };
 
-
 const refundPayment = async (paymentIntentId) => {
   try {
     await stripe.refunds.create({ payment_intent: paymentIntentId });
@@ -56,22 +61,26 @@ const refundPayment = async (paymentIntentId) => {
   }
 };
 
-const transferToTeacher = async (paymentIntent, teacherStripeAccountId) => {
+const transferToTeacher = async (chargeId, teacherStripeAccountId, amount, currency) => {
   try {
-    const chargeId = paymentIntent.charges.data[0].id;
     const transfer = await stripe.transfers.create({
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      destination: teacherStripeAccountId,
+      amount,            
+      currency,          
+      destination: teacherStripeAccountId, 
       description: "Payment for course",
-      source_transaction: chargeId,
+      source_transaction: chargeId, 
     });
+
     return transfer;
   } catch (error) {
     console.error("Error transferring payment to teacher:", error);
     throw error;
   }
 };
+
+module.exports = transferToTeacher;
+
+
 
 module.exports = {
   createPaymentIntent,

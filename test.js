@@ -38,7 +38,4 @@ const sendEmail = async () => {
 // Call the sendEmail function to send an email
 sendEmail();
 
-npm install --save @sendgrid/mail
-
-
-
+// if teacher wants to cancel subscription 

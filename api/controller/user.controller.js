@@ -240,7 +240,7 @@ const createStripeAccount = async (req, res) => {
   try {
     // Create a custom Stripe account
     const account = await stripe.accounts.create({
-      type: 'custom',
+      type: 'express',
       country: 'US',
       capabilities: {
         card_payments: { requested: true },
@@ -249,8 +249,9 @@ const createStripeAccount = async (req, res) => {
     });
 
     // Extract the user ID from the request body
-    const { userId } = req.decodedToken._id;
-    // const  {userId} = req.body;
+    // const { userId } = req.decodedToken
+    
+    const  {userId} = req.body;
    
     await User.findByIdAndUpdate({_id:userId}, { stripeAccountId: account.id });
 

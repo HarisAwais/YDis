@@ -1,6 +1,5 @@
 const connectedUsers = [];
 const { Server } = require("socket.io");
-const mongoose = require("mongoose");
 const Chat = require("./api/schema/chat.schema");
 
 let connection = null;
@@ -46,16 +45,13 @@ class Socket {
         const userId = socket.userId;
 
         // Fetch chat messages from MongoDB
-        const chat = await Chat.findOne({
+        const chat_of_user = await Chat.findOne({
           participants: userId,
-        }).populate({
-          path: "messages.sender messages.receiver",
-          select: "firstName lastName", 
-        });
+        }).populate("messages.sender messages.receiver");
 
-        if (chat) {
+        if (chat_of_user) {
           // Send the chat history to the user
-          socket.emit("chatHistory", chat.messages);
+          socket.emit("chatHistory", chat_of_user.messages);
         }
       } catch (error) {
         console.error("Chat history retrieval error:", error);
@@ -78,11 +74,16 @@ class Socket {
           }
 
           // Add the new message to the chat
-          chat.messages.push({
+          const newMessage = {
             text,
             sender: senderId,
             receiver: receiverId,
-          });
+          };
+
+          chat.messages.push(newMessage);
+
+          // Mark the message as not seen by default
+          newMessage.seen = false;
 
           await chat.save();
 
@@ -101,19 +102,47 @@ class Socket {
           console.error("Chat message error:", error);
         }
       });
-      socket.on("typing", (data) => {
-        const receiverSocket = this.getSocketByUserId(data.receiverId);
-        if (receiverSocket) {
-          receiverSocket.emit("userTyping", { userId: data.senderId });
+
+      socket.on("markAsSeen", async (data) => {
+        try {
+          const { chatId, messageId, userId } = data;
+
+          // Find the chat and message
+          const chat = await Chat.findOne({ _id: chatId });
+          if (!chat) {
+            return;
+          }
+
+          const message = chat.messages.find(
+            (message) => message._id.toString() === messageId
+          );
+
+          if (!message) {
+            return;
+          }
+
+          // Mark the message as seen by the user
+          message.seen = true;
+
+          await chat.save();
+
+          // Emit the updated chat to the sender and receiver
+          const senderSocket = this.getSocketByUserId(message.sender);
+          const receiverSocket = this.getSocketByUserId(message.receiver);
+
+          if (senderSocket) {
+            senderSocket.emit("messageUpdated", chat.messages);
+          }
+
+          if (receiverSocket) {
+            receiverSocket.emit("messageUpdated", chat.messages);
+          }
+        } catch (error) {
+          console.error("Mark as seen error:", error);
         }
       });
 
-      socket.on("stoppedTyping", (data) => {
-        const receiverSocket = this.getSocketByUserId(data.receiverId);
-        if (receiverSocket) {
-          receiverSocket.emit("userStoppedTyping", { userId: data.senderId });
-        }
-      });
+      // ... (other event handlers)
 
       this.socket = socket;
     });

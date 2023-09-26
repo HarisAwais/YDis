@@ -6,6 +6,7 @@ const {
   studentSubscription,
   updateSubscriptionStatus,
   updateCourseStat,
+  cancelPendingSubscriptions,
 } = require("../controller/subscription.controller");
 
 const { authentication } = require("../middleware/authentication.middleware");
@@ -17,7 +18,7 @@ const subscriptionRouter = express.Router();
 subscriptionRouter.post(
   "/create-subscription",
   createSubscription
-  );
+);
   
   //Teacher will update status of subscription (pending,active or completed) 
   subscriptionRouter.patch(
@@ -25,26 +26,29 @@ subscriptionRouter.post(
     authentication,
     isTeacher,
     updateSubscriptionStatus
-  );
+);
 
   
-  subscriptionRouter.delete(
+subscriptionRouter.delete(
     "/cancel-subscription/:subscriptionId",
     authentication,
     cancelSubscription
-    ),
+),
 
 subscriptionRouter.get(
   "/teacher-subscription",
   authentication,
   teacherSubscriptions
 );
+
 subscriptionRouter.get(
   "/student-subscription",
   authentication,
   studentSubscription
 );
+
 subscriptionRouter.patch("/course-stat/:subscriptionId/mark-completed", updateCourseStat);
 
+subscriptionRouter.post("/cancel-pending-subscription",cancelPendingSubscriptions)
 
 module.exports = subscriptionRouter;
