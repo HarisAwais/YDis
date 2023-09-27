@@ -8,15 +8,16 @@ const registerValidation = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
   gender: Joi.string().valid(GENDER.MALE, GENDER.FEMALE, GENDER.OTHER).required(),
-  role: Joi.string().valid(USER_ROLE.STUDENT, USER_ROLE.TEACHER, USER_ROLE.ADMIN).required().uppercase(),
+  role: Joi.string().valid(USER_ROLE.STUDENT, USER_ROLE.TEACHER).required().uppercase(),
   profile: Joi.string().default(
     PROFILE.PROFILE
   ),
   session: Joi.string().allow(null).default(null),
-  experience: Joi.when("role", {
+
+  experience: Joi.string().when("role", {
     is: USER_ROLE.TEACHER,
     then: Joi.string().required(),
-    otherwise: Joi.string(),
+    otherwise: Joi.string().allow(''), 
   }),
   isVerified: Joi.boolean().default(false), 
   stripeAccountId: Joi.string().default(null), 
@@ -31,5 +32,6 @@ const loginValidation = Joi.object({
 const verifiyValidation = Joi.boolean().required();
 
 const teacherIdValidation = Joi.string().length(24).hex().required();
+
 
 module.exports = {registerValidation,loginValidation,verifiyValidation,teacherIdValidation};

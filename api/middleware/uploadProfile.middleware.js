@@ -1,43 +1,48 @@
+// Importing Modules
 const multer = require("multer");
 const fs = require("fs");
 
-// Define storage using multer.diskStorage
+// Multer Functions
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const { generatedId, role } = req;
+    const { generatedId } = req;
+    const { role } = req.body; // Access role from the request body
 
-    // Define destination directory based on the user's role and generatedId
-    let destination;
-    switch (role) {
-      case "STUDENT":
-        destination = `public/${generatedId}`;
-        break;
-      case "TEACHER":
-        destination = `public/${generatedId}`;
-        break;
-      case "ADMIN":
-        destination = `public/${generatedId}`;
-        break;
-      default:
-        destination = `public/unknown/${generatedId}`;
-    }
-
-    // Create the destination directory if it doesn't exist
-    if (!fs.existsSync(destination)) {
-      fs.mkdirSync(destination, { recursive: true });
-    }
-
-    cb(null, destination);
+    cb(
+      null,
+      /* 
+        If role exists in req.body and is "STUDENT," then it will be "STUDENT"
+        otherwise, it will be "TEACHER"
+      */
+      `public/${role === "STUDENT" ? "STUDENT" : "TEACHER"}/` +
+        generatedId +
+        "/"
+    );
   },
   filename: (req, file, cb) => {
     try {
       const { generatedId } = req;
+      const { role } = req.body; // Access role from the request body
 
-      const fullFilePath = `./public/${req.body.role}/${generatedId}/${file.originalname}`;
+      // Create a file path where we have to store the file
+      const fullFilePath = `./public/${
+        // see the comment in destination field for the line below
+        role === "STUDENT" ? "STUDENT" : "TEACHER"
+      }/${generatedId}/${file.originalname}`;
 
+      // If file exists in the given path, then delete the file
       if (fs.existsSync(fullFilePath)) {
         fs.unlinkSync(fullFilePath);
       }
+
+      // Create the directory, in case if the directory does not exist
+      fs.mkdirSync(
+        // see the comment in destination field for the line below
+        `public/${role === "STUDENT" ? "STUDENT" : "TEACHER"}/` +
+          generatedId +
+          "/",
+        { recursive: true }
+      );
 
       req.filename = `${file.originalname}`;
 
@@ -47,31 +52,59 @@ const storage = multer.diskStorage({
 
       cb(null, filename);
     } catch (error) {
-      console.error(`Error in ${req.body.role} profile upload`, error);
+      console.error(
+        `error in ${role === "STUDENT" ? "STUDENT" : "TEACHER"} profile upload`,
+        error
+      );
 
       cb(new Error("Error occurred"));
     }
   },
 });
 
-// Define file size limits (1MB in this example)
 const limits = {
   fileSize: 1024 * 1024, // 1MB
 };
 
-// Define file filter function to allow only specific file types (e.g., jpg, png, svg)
-const fileFilter = (allowedFileTypes) => (req, file, cb) => {
+const fileFilter = (req, file, cb) => {
+  const allowedFileTypes = ["image/jpeg", "image/png", "image/svg+xml"];
+
   if (allowedFileTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    const error = new multer.MulterError("UNSUPPORTED_FILE_TYPE", "userProfile");
-    error.message = "Only jpg, png & svg file types are supported";
+    // Create a Multer Error and pass it to cb to catch it in the Multer Error Handler
+    const error = new multer.MulterError(
+      "UNSUPPORTED_FILE_TYPE",
+      "userProfile"
+    );
+    error.message = "Only jpg, png & svg file type are supported";
     cb(error);
   }
 };
 
-// Create the multer upload middleware
-const upload = multer({ storage, limits, fileFilter: fileFilter(["image/jpeg", "image/png", "image/svg+xml"]) }).single("userProfile");
+// Initializing Multer
+const upload = multer({ storage, limits, fileFilter }).single("userProfile");
 
-module.exports = upload;
+// For Handling Multer Errors/ Multer Error Handler
+const uploadProfile = (req, res, next) => {
+  upload(req, res, function (error) {
+    if (error) {
+      // Check if the error is from Multer or not
+      if (error instanceof multer.MulterError) {
+        return res
+          .status(400)
+          .json({ status: "FAILED", description: "Multer: " + error.message });
+      } else {
+        // Default Internal Server Error
+        return res.status(500).json({
+          status: "INTERNAL_SERVER_ERROR",
+          message: "SORRY: Something went wrong",
+        });
+      }
+    }
 
+    next();
+  });
+};
+
+module.exports = uploadProfile;

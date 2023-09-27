@@ -1,8 +1,9 @@
 const Subscription = require("../schema/subcription.schema");
 const Course = require("../schema/course.schema");
-const moment = require("moment");
 const mongoose = require("mongoose");
 const zeroSetter = require("../helper/zeroSetter.helper");
+
+/* ======================= Create Subscription ======================== */
 
 const createSubscription = async (subscriptionData) => {
   try {
@@ -26,7 +27,7 @@ const createSubscription = async (subscriptionData) => {
     };
   }
 };
-
+/* ======================= Get Subscription By Id ======================== */
 const getSubscriptionById = async (_id) => {
   try {
     const subscriptionFound = await Subscription.findById(_id).lean().exec();
@@ -48,6 +49,8 @@ const getSubscriptionById = async (_id) => {
     };
   }
 };
+
+/* ======================= Check TimeSlot If Available ======================== */
 
 const checkTimeSlotAvailability = async (
   _courseId,
@@ -86,6 +89,8 @@ const checkTimeSlotAvailability = async (
   }
 };
 
+/* ======================= Calculate Duration Of Course  ======================== */
+
 const calculateCourseDuration = async (_id) => {
   try {
     console.log(_id);
@@ -112,6 +117,8 @@ const calculateCourseDuration = async (_id) => {
     };
   }
 };
+
+/* ======================= Cancel Subscription Of Course  ======================== */
 
 const cancelSubscription = async (subscriptionId) => {
   try {
@@ -142,6 +149,7 @@ const cancelSubscription = async (subscriptionId) => {
   }
 };
 
+/* ======================= Update Subscription Of Course  ======================== */
 
 const updateSubscription = async (subscriptionId, update, options) => {
   try {
@@ -172,6 +180,8 @@ const updateSubscription = async (subscriptionId, update, options) => {
     };
   }
 };
+
+/* ======================= Teacher Get own Subscription  ======================== */
 
 const teacherSubscriptions = async (teacherId) => {
   try {
@@ -219,6 +229,8 @@ const teacherSubscriptions = async (teacherId) => {
   }
 };
 
+/* ======================= Student Get own Subscription  ======================== */
+
 const studentAppointments = async (_studentId) => {
   try {
     const studentAppointments = await Subscription.find({
@@ -244,6 +256,8 @@ const studentAppointments = async (_studentId) => {
     };
   }
 };
+
+/* ======================= Teacher Marked Completed Subscription  ======================== */
 
 const completedTopics = async (
   subscriptionId,
@@ -300,6 +314,8 @@ const completedTopics = async (
     };
   }
 };
+
+/* ======================= Get Teacher Stripe Account  ======================== */
 
 const teacherAccount = async()=>{
 // Using Aggregation

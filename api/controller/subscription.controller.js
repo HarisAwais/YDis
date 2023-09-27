@@ -114,7 +114,11 @@ const createSubscription = async (req, res) => {
 /*============================ updateSubscriptionStatus By Teacher ============================*/
 
 const updateSubscriptionStatus = async (req, res) => {
+  let session = await conn.startSession();
+  session.startTransaction();
   try {
+    const opts = { session };
+
     const { subscriptionId } = req.params;
     const { status } = req.body;
     let { classStartTime, classEndTime } = req.body;
@@ -188,7 +192,8 @@ const updateSubscriptionStatus = async (req, res) => {
     const updateResult = await SubscriptionModel.updateSubscription(
       condition,
       update,
-      options
+      options,
+      opts
     );
 
     if (updateResult.status === "SUCCESS") {
@@ -203,29 +208,43 @@ const updateSubscriptionStatus = async (req, res) => {
             $set: { "stripeAccount.paymentStatus": "PAID" },
           });
 
+          await session.commitTransaction();
+          await session.endSession();
+
           return res.status(200).json({
             message: "SUCCESS",
             data: updateResult.data,
           });
         } else {
+          await session.abortTransaction();
+          await session.endSession();
+
           return res.status(500).json({
             message: "FAILED",
             description: "Payment capture failed",
           });
         }
       } else {
+        await session.commitTransaction();
+        await session.endSession();
+
         return res.status(200).json({
           message: "SUCCESS",
           data: updateResult.data,
         });
       }
     } else {
+      await session.abortTransaction();
+      await session.endSession();
+
       return res.status(500).json({
         message: "FAILED",
         description: "Subscription not updated",
       });
     }
   } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
     console.error(error);
     return res.status(500).json({
       message: "SORRY: Something went wrong",
@@ -252,14 +271,26 @@ const cancelSubscription = async (req, res) => {
 
     // Check if the subscription status is 'SUCCESS'
     if (subscription.status === "SUCCESS") {
-      // Check if the studentId in the subscription matches the decodedToken's _id
       if (subscription.data?._studentId.toString() !== req.decodedToken._id) {
         return res.status(403).json({
           error: "Subscription does not belong to this student.",
         });
       }
 
-      // Attempt to cancel the subscription
+      // Attempt to cancel the subscription in Stripe
+      try {
+        const canceledSubscription = await stripe.products.del(subscription.data?.stripeAccount.subscriptionId);
+
+
+        // canceledSubscription object will contain information about the canceled subscription in Stripe
+      } catch (stripeError) {
+        console.error(stripeError);
+        return res.status(500).json({
+          message: "Failed to cancel the subscription in Stripe.",
+        });
+      }
+
+      // Update the subscription status in your database
       const cancelResult = await SubscriptionModel.cancelSubscription(
         subscriptionId
       );

@@ -42,11 +42,12 @@ const userSchema = new mongoose.Schema(
     },
     experience: { 
       type:String,
+      default:null
     },
     isVerified: Boolean,
     stripeAccountId:{type:String,default:null}
   },
-  {timestamps: true}
+  {timestamps: true,_id:true}
 );
 
 const User = mongoose.model("User", userSchema);

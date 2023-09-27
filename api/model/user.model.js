@@ -1,8 +1,9 @@
 const User = require("../schema/user.schema");
 const Subscription = require("../schema/subcription.schema");
-const saveUser = async (userData) => {
+const saveUser = async (userId,userData) => {
   try {
     const user = new User({
+      _id:userId,
       ...userData,
     });
 
@@ -140,7 +141,7 @@ const verifyingTeacher = async (teacherId, isVerified) => {
   try {
     const updatedTeacher = await User.findByIdAndUpdate(
       { _id: teacherId },
-      { isVerified: true },
+      { isVerified },
       { new: true }
     );
 
@@ -187,7 +188,7 @@ const getTeachers = async (role) => {
 
 const getStudents = async (role) => {
   try {
-    const students = await User.find({ role: role }).lean().exec();
+    const students = await User.find({ role }).lean().exec();
 
     if (students.length > 0) {
       return {

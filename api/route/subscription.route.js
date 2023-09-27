@@ -10,36 +10,37 @@ const {
 } = require("../controller/subscription.controller");
 
 const { authentication } = require("../middleware/authentication.middleware");
-const {isTeacher} = require("../middleware/authorization.middleware")
+const { isTeacher } = require("../middleware/authorization.middleware");
 
 const subscriptionRouter = express.Router();
+/*============================== Route For Create Subscription =======================================*/
+subscriptionRouter.post("/create-subscription", createSubscription);
 
-//student create subscription
-subscriptionRouter.post(
-  "/create-subscription",
-  createSubscription
-);
-  
-  //Teacher will update status of subscription (pending,active or completed) 
-  subscriptionRouter.patch(
-    "/update-subscription/:subscriptionId",
-    authentication,
-    isTeacher,
-    updateSubscriptionStatus
-);
+/*============================== Route For Update Subscription Status =======================================*/
 
-  
-subscriptionRouter.delete(
-    "/cancel-subscription/:subscriptionId",
-    authentication,
-    cancelSubscription
-),
-
-subscriptionRouter.get(
-  "/teacher-subscription",
+subscriptionRouter.patch(
+  "/update-subscription/:subscriptionId",
   authentication,
-  teacherSubscriptions
+  isTeacher,
+  updateSubscriptionStatus
 );
+
+/*============================== Route For Cancel Subscription Status =======================================*/
+
+subscriptionRouter.delete(
+  "/cancel-subscription/:subscriptionId",
+  authentication,
+  cancelSubscription
+),
+  /*============================== Route For Teacher Subscription  =======================================*/
+
+  subscriptionRouter.get(
+    "/teacher-subscription",
+    authentication,
+    teacherSubscriptions
+  );
+
+/*============================== Route For Student Subscription =======================================*/
 
 subscriptionRouter.get(
   "/student-subscription",
@@ -47,8 +48,18 @@ subscriptionRouter.get(
   studentSubscription
 );
 
-subscriptionRouter.patch("/course-stat/:subscriptionId/mark-completed", updateCourseStat);
+/*============================== Route For Update Course Stat =======================================*/ 
 
-subscriptionRouter.post("/cancel-pending-subscription",cancelPendingSubscriptions)
+subscriptionRouter.patch(
+  "/course-stat/:subscriptionId/mark-completed",
+  updateCourseStat
+);
+
+/*============================== Route Webhook For Stripe To Cancel Pending Status =======================================*/ 
+
+subscriptionRouter.post(
+  "/cancel-pending-subscription",
+  cancelPendingSubscriptions
+);
 
 module.exports = subscriptionRouter;

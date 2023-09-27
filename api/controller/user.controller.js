@@ -1,12 +1,10 @@
-const  Socket  = require("../../socket");
 const { generateSession } = require("../helper/generateSession");
 const { signToken } = require("../helper/signToken");
 const UserModel = require("../model/user.model");
 const bcrypt = require("bcryptjs");
-const mongoose = require("mongoose")
-const User = require("../schema/user.schema")
-
-const stripe = require("stripe")('sk_test_51NpSaDC44tKvGwWA8hqaaDH5TUcJypQjZm1ygDYUYX4gUjBNQUB7Swea652dKKq6odCdFyzKtJYy8eg7KExl3vuk009AdvchfR')
+const User = require("../schema/user.schema");
+const { USER_ROLE } = require("../../config/constant");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
 const registerUser = async (req, res) => {
   try {
@@ -25,17 +23,18 @@ const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
     // Check if a file was uploaded and get its filename
-    const userProfile = req.file ? req.file.filename : '';
+
+
+    req.body.profile = req?.fullFilePath;
 
     const newUser = {
       ...req.body,
       session,
       password: hashedPassword,
-      isVerified: role === "TEACHER" ? false : true,
-      profile: userProfile, 
+      isVerified: role === USER_ROLE.TEACHER ? false : true,
+    
     };
-
-    const savedUser = await UserModel.saveUser(newUser);
+    const savedUser = await UserModel.saveUser(req.generatedId,newUser);
 
     if (savedUser.status === "SUCCESS") {
       res.status(201).json({
@@ -132,6 +131,7 @@ const logoutUser = async (req, res) => {
 
 const verifyTeacher = async (req, res) => {
   try {
+   
     const { teacherId } = req.params;
 
     const teacher = await UserModel.findUserById(teacherId);
@@ -156,11 +156,12 @@ const verifyTeacher = async (req, res) => {
 
 const getAllTeacher = async (req, res) => {
   try {
+   
     const result = await UserModel.getTeachers("TEACHER");
 
     if (result.status === "SUCCESS") {
       res.status(200).send({ data: result.data });
-    } else if (result.status === "NO_TEACHERS") {
+    } else {
       res.status(404).send({error:"OOPS!Sorry Something went wrong"});
     }
   } catch (error) {
@@ -174,7 +175,7 @@ const getAllTeacher = async (req, res) => {
 const getAllStudent = async (req, res) => {
   try {
     const result = await UserModel.getStudents("STUDENT");
-
+   
     if (result.status === "SUCCESS") {
       res.status(200).json({ data: result.data });
     } else if (result.status === "NO_TEACHERS") {

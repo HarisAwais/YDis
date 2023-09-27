@@ -1,5 +1,5 @@
 const express = require("express");
-const { generateId } = require("../middleware/generateId");
+const { generateId}= require("../middleware/generateId")
 const { authentication } = require("../middleware/authentication.middleware");
 const {
   registerUser,
@@ -12,13 +12,14 @@ const {
   studentDetail,
   createStripeAccount,
 } = require("../controller/user.controller");
-const { isAdmin,isTeacher } = require("../middleware/authorization.middleware");
+const { isAdmin, } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
-const {registerValidation, loginValidation, teacherIdValidation, verifiyValidation} = require("../validators/user.validator");
-const upload = require("../middleware/uploadProfile.middleware");
+const {registerValidation, loginValidation, teacherIdValidation, } = require("../validators/user.validator");
+const uploadProfile = require("../middleware/uploadProfile.middleware");
 const userRouter = express.Router();
-
-userRouter.post("/register", generateId,upload,
+userRouter.post("/register",
+generateId,
+uploadProfile,
 validateInput(registerValidation,"BODY"),
 registerUser);
 
@@ -45,3 +46,6 @@ userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
 userRouter.post("/create-stripe-account",createStripeAccount)
 
 module.exports = userRouter;
+
+
+//profile issue and params issue
