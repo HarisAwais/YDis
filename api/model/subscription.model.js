@@ -131,10 +131,13 @@ const cancelSubscription = async (subscriptionId) => {
     }
 
     if (subscription.status === "APPROVED") {
-      return { status: "APPROVED", message: "Your subscription is already approved." };
+      return {
+        status: "APPROVED",
+        message: "Your subscription is already approved.",
+      };
     }
 
-    const cancelSubscription = await Subscription.findByIdAndRemove(
+    const cancelSubscription = await Subscription.findByIdAndDelete(
       subscriptionId
     );
 
@@ -160,8 +163,7 @@ const updateSubscription = async (subscriptionId, update, options) => {
     )
       .lean()
       .exec();
-      
-    
+
     if (updatedSubscription) {
       return {
         status: "SUCCESS",
@@ -185,47 +187,33 @@ const updateSubscription = async (subscriptionId, update, options) => {
 
 const teacherSubscriptions = async (teacherId) => {
   try {
-    const currentDate = new Date();
-    const teacherSubscriptions = await Subscription.aggregate([
+    const pipeline = [
+      { $match: { status: 'APPROVED' } },
       {
         $lookup: {
-          from: "courses",
+          from: "courses", 
           localField: "_courseId",
           foreignField: "_id",
-          as: "course",
+          as: "courses",
         },
-      },
-      {
-        $unwind: "$course",
       },
       {
         $match: {
-          "course.teacherId": new mongoose.Types.ObjectId(teacherId),
-          startDate: { $lte: currentDate },
-          endDate: { $gte: currentDate },
+          "courses.teacherId": new mongoose.Types.ObjectId(teacherId), 
         },
       },
-      {
-        $project: {
-          _id: 0, // Exclude the _id field if you don't need it
-          classStartTime: 1,
-          classEndTime: 1,
-          startDate: 1,
-          endDate: 1,
-        },
-      },
-    ]);
+    
+    ];
+    const result = await Subscription.aggregate(pipeline);
 
-    if (teacherSubscriptions.length > 0) {
-      return { status: "SUCCESS", data: teacherSubscriptions };
+    if (result) {
+      return { status: "SUCCESS", data: result };
     } else {
       return { status: "FAILED" };
     }
   } catch (error) {
-    console.log(error);
-    return {
-      error: error.message,
-    };
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
@@ -317,51 +305,49 @@ const completedTopics = async (
 
 /* ======================= Get Teacher Stripe Account  ======================== */
 
-const teacherAccount = async()=>{
-// Using Aggregation
-const aggregationResult = await Subscription.aggregate([
-  {
-    $match: { _id: mongoose.Types.ObjectId(subscriptionId) },
-  },
-  {
-    $lookup: {
-      from: "courses", // The name of the Course collection
-      localField: "_courseId",
-      foreignField: "_id",
-      as: "course",
+const teacherAccount = async () => {
+  const aggregationResult = await Subscription.aggregate([
+    {
+      $match: { _id: mongoose.Types.ObjectId(subscriptionId) },
     },
-  },
-  {
-    $unwind: "$course",
-  },
-  {
-    $lookup: {
-      from: "users", // The name of the User collection
-      localField: "course.teacherId",
-      foreignField: "_id",
-      as: "teacher",
+    {
+      $lookup: {
+        from: "courses", // The name of the Course collection
+        localField: "_courseId",
+        foreignField: "_id",
+        as: "course",
+      },
     },
-  },
-  {
-    $unwind: "$teacher",
-  },
-  {
-    $project: {
-      _id: 0,
-      teacherStripeAccountId: "$teacher.stripeAccountId",
+    {
+      $unwind: "$course",
     },
-  },
-]);
+    {
+      $lookup: {
+        from: "users", // The name of the User collection
+        localField: "course.teacherId",
+        foreignField: "_id",
+        as: "teacher",
+      },
+    },
+    {
+      $unwind: "$teacher",
+    },
+    {
+      $project: {
+        _id: 0,
+        teacherStripeAccountId: "$teacher.stripeAccountId",
+      },
+    },
+  ]);
 
-if (aggregationResult.length === 0) {
-  return res.status(404).json({ message: "Subscription not found" });
-}
+  if (aggregationResult.length === 0) {
+    return res.status(404).json({ message: "Subscription not found" });
+  }
 
-const teacherStripeAccountId = aggregationResult[0].teacherStripeAccountId;
+  const teacherStripeAccountId = aggregationResult[0].teacherStripeAccountId;
 
-// Now you have the teacherStripeAccountId
-
-}
+  // Now you have the teacherStripeAccountId
+};
 module.exports = {
   createSubscription,
   getSubscriptionById,
@@ -372,5 +358,5 @@ module.exports = {
   studentAppointments,
   calculateCourseDuration,
   completedTopics,
-  teacherAccount
+  teacherAccount,
 };

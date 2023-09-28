@@ -6,6 +6,8 @@ const User = require("../schema/user.schema");
 const { USER_ROLE } = require("../../config/constant");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 
+/*================================================= REGISTER USER ====================================================== */
+
 const registerUser = async (req, res) => {
   try {
     const {role} = req.body;
@@ -54,6 +56,8 @@ const registerUser = async (req, res) => {
     });
   }
 };
+
+/*================================================= LOGIN USER ====================================================== */
 
 const loginUser = async (req, res) => {
   try {
@@ -105,6 +109,8 @@ const loginUser = async (req, res) => {
   }
 };
 
+/*================================================= LOGOUT USER ====================================================== */
+
 const logoutUser = async (req, res) => {
   try {
     const userId = req.decodedToken._id;
@@ -129,10 +135,12 @@ const logoutUser = async (req, res) => {
   }
 };
 
+/*================================================= VERIFY TEACHER ====================================================== */
+
 const verifyTeacher = async (req, res) => {
   try {
-   
-    const { teacherId } = req.params;
+       
+    const  teacherId  = req.params.teacherId;
 
     const teacher = await UserModel.findUserById(teacherId);
     if (teacher.status === "FAILED") {
@@ -154,6 +162,8 @@ const verifyTeacher = async (req, res) => {
   }
 };
 
+/*================================================= GET ALL TEACHER BY ADMIN====================================================== */
+
 const getAllTeacher = async (req, res) => {
   try {
    
@@ -171,6 +181,8 @@ const getAllTeacher = async (req, res) => {
     });
   }
 };
+
+/*================================================= GET ALL STUDENT BY ADMIN ====================================================== */
 
 const getAllStudent = async (req, res) => {
   try {
@@ -190,6 +202,8 @@ const getAllStudent = async (req, res) => {
     });
   }
 };
+
+/*================================================= ADMIN SEE TEACHER ALL RECORD ====================================================== */
 
 const teacherDetail = async (req, res) => {
   try {
@@ -214,6 +228,7 @@ const teacherDetail = async (req, res) => {
     });
   }
 };
+/*================================================= ADMIN SEE STUDENT ALL RECORD ====================================================== */
 
 const studentDetail = async (req, res) => {
   try {
@@ -236,6 +251,8 @@ const studentDetail = async (req, res) => {
     });
   }
 };
+
+/*================================================= CREATE STRIPE ACCOUNT BY USER ====================================================== */
 
 const createStripeAccount = async (req, res) => {
   try {

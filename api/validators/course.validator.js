@@ -31,7 +31,7 @@ const courseValidate = Joi.object({
   isDeleted: Joi.boolean().default(false),
 });
 
-const courseIdValidate = Joi.string().length(24).hex();
+const courseIdValidate = Joi.object({courseId:Joi.string().length(24).hex()});
 
 const ratingCommentValidate = Joi.object({
   rating: Joi.number().min(1).max(5).required(),

@@ -5,11 +5,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const authentication = async (req, res, next) => {
   const bearerToken = req.headers.authorization;
 
-  // console.log("Bearer Token:", bearerToken);
 
   const token = bearerToken?.split(" ")[1];
 
-  //  console.log("Token:", token);
 
   let decodedToken;
   let isSessionMatched;

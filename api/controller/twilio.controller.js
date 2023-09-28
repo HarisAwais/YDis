@@ -1,4 +1,5 @@
-// twilio.controller.js
+// twilio.controller.j
+require("dotenv").config();
 
 const { v4: uuidv4 } = require("uuid");
 const AccessToken = require("twilio").jwt.AccessToken;

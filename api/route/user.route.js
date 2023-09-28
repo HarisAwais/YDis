@@ -17,6 +17,8 @@ const { validateInput } = require("../middleware/validateInput.middleware");
 const {registerValidation, loginValidation, teacherIdValidation, } = require("../validators/user.validator");
 const uploadProfile = require("../middleware/uploadProfile.middleware");
 const userRouter = express.Router();
+
+/*================================================= ROUTE Register User====================================================== */
 userRouter.post("/register",
 generateId,
 uploadProfile,

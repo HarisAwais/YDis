@@ -14,7 +14,9 @@ const { isTeacher } = require("../middleware/authorization.middleware");
 
 const subscriptionRouter = express.Router();
 /*============================== Route For Create Subscription =======================================*/
-subscriptionRouter.post("/create-subscription", createSubscription);
+subscriptionRouter.post("/create-subscription",
+//  authentication,
+ createSubscription);
 
 /*============================== Route For Update Subscription Status =======================================*/
 
@@ -26,7 +28,6 @@ subscriptionRouter.patch(
 );
 
 /*============================== Route For Cancel Subscription Status =======================================*/
-
 subscriptionRouter.delete(
   "/cancel-subscription/:subscriptionId",
   authentication,
@@ -52,6 +53,7 @@ subscriptionRouter.get(
 
 subscriptionRouter.patch(
   "/course-stat/:subscriptionId/mark-completed",
+  authentication,
   updateCourseStat
 );
 

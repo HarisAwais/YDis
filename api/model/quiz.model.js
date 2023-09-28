@@ -1,3 +1,4 @@
+
 const Quiz = require("../schema/quiz.schema");
 const mongoose = require("mongoose");
 
@@ -53,9 +54,7 @@ const updateQuiz = async (assignmentId, updateData) => {
 
 const deleteQuiz = async (_id, user) => {
   try {
-    const quiz = await Quiz.findById(_id);
-    // console.log(quiz)
-
+    const quiz = await Quiz.findById({ _id });
     if (!quiz) {
       return {
         status: "NOT_FOUND",
@@ -69,13 +68,19 @@ const deleteQuiz = async (_id, user) => {
       };
     }
 
+    quiz.isDeleted = true
     // Delete the assignment
-    await quiz.deleteOne({ _id });
-
-    return {
-      status: "SUCCESS",
-      message: "Quiz deleted successfully",
-    };
+    const result = await quiz.save();
+    if (result) {
+      return {
+        status: "SUCCESS",
+      };
+    } else {
+      return {
+        status: "FAILED",
+        message: "OOPS! Something went wrong",
+      };
+    }
   } catch (error) {
     return {
       status: "OOPS!Something went wrong",
@@ -87,7 +92,7 @@ const deleteQuiz = async (_id, user) => {
 const quizById = async (_id) => {
   try {
     const quiz = await Quiz.findById(_id);
-  
+
     if (quiz) {
       return {
         status: "SUCCESS",

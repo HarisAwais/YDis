@@ -4,7 +4,7 @@ const mongoose = require("mongoose")
 const saveCourse = async (generatedId,courseData) => {
   try {
     const course = new Course({
-      generatedId,
+      _id:generatedId,
       ...courseData,
     });
     
@@ -275,9 +275,8 @@ const listCourse = async (page, perPage) => {
   }
 };
 
-const searchCourses = async (category, maxPrice, sortBy) => {
+const searchCoursesModel = async (category, maxPrice, sortBy, name, page, pageSize) => {
   try {
-    console.log(category)
     const query = {};
 
     if (category) {
@@ -286,6 +285,11 @@ const searchCourses = async (category, maxPrice, sortBy) => {
 
     if (maxPrice) {
       query.fee = { $lte: maxPrice };
+    }
+
+    if (name) {
+      // Use a case-insensitive regular expression to search by name
+      query.name = { $regex: new RegExp(name, 'i') };
     }
 
     const sortOptions = {};
@@ -297,21 +301,26 @@ const searchCourses = async (category, maxPrice, sortBy) => {
     } else if (sortBy === "top_trending") {
       sortOptions["numOfReviews"] = -1; // Sort by top trending (numOfReviews)
     }
-    console.log(query)
 
+    const skip = (page - 1) * pageSize;
+    const limit = pageSize;
+
+    // Perform the database query with pagination
     const courses = await Course.find(query)
-      .populate("teacherId", "firstName lastName")
       .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
       .lean()
       .exec();
 
     return courses;
   } catch (error) {
-    return {
-      status: "SORRY: Something went wrong",
-      error: error.message,
-    };
+    throw error;
   }
+};
+
+module.exports = {
+  searchCoursesModel: searchCoursesModel,
 };
 
 
@@ -387,6 +396,6 @@ module.exports = {
   deleteReview,
   incrementNumOfReviews,
   listCourse,
-  searchCourses,
+  searchCoursesModel,
   teacherAccount
 };

@@ -28,22 +28,23 @@ courseRouter.post(
   createCourse
 );
 
-//route for teacher to get his oen courses
-courseRouter.get("/teacher-course", authentication, getTeacherCourses);
-
 // update course by teacher
 courseRouter.put(
   "/update-course/:courseId",
   authentication,
-  isTeacher,
   validateInput(courseValidate,"BODY"),
-  // validateInput(courseIdValidate,"PARAMS"),
+  validateInput(courseIdValidate,"PARAMS"),
   updateCourse
-);
-// deleteCourse by teacher
-// courseRouter.delete("/delete/:courseId", validateInput(courseIdValidate,"PARAMS"),authentication, isTeacher, deleteCourse);
+  );
 
-courseRouter.delete("/delete/:courseId",authentication, isTeacher, deleteCourse);
+  // deleteCourse by teacher
+  courseRouter.delete("/delete/:courseId",
+  validateInput(courseIdValidate,"PARAMS"),
+  authentication,
+  deleteCourse);
+    
+  //route for teacher to get his oen courses
+courseRouter.get("/teacher-course", authentication, getTeacherCourses);
 
 // list all courses to user
 courseRouter.get("/list-course", getAllCourse);
@@ -52,18 +53,18 @@ courseRouter.get("/single-course/:courseId", getSingleCourse);
 
 //about the reviews
 courseRouter.patch("/review/:courseId",
-// validateInput(courseIdValidate,"PARAMS"),
+validateInput(courseIdValidate,"PARAMS"),
 validateInput(ratingCommentValidate,"BODY"),
 authentication,
 createReview);
 
 //get product reviews
 courseRouter.get("/course-review/:courseId",
-// validateInput(courseIdValidate,"PARAMS"),
+validateInput(courseIdValidate,"PARAMS"),
 getCourseReviews);
 //
 courseRouter.delete("/delete-review/:courseId", 
-// validateInput(courseIdValidate,"PARAMS"),
+validateInput(courseIdValidate,"PARAMS"),
 authentication,
 deleteReview);
 

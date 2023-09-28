@@ -11,6 +11,7 @@ const {
   submitQuiz,
   studentsWhoTookQuiz,
   getCertificate,
+  
 } = require("../controller/quiz.controller");
 const { validateInput } = require("../middleware/validateInput.middleware");
 
@@ -35,7 +36,6 @@ quizRouter.post(
     "/update-quiz/:quizId",
     validateInput(teacherQuestion, "BODY"),
     authentication,
-    isTeacher,
     updateQuiz
   ),
   //Teacher delete Quiz
@@ -43,7 +43,6 @@ quizRouter.post(
     "/delete-quiz/:quizId",
     validateInput(quizIDValidate, "PARAMS"),
     authentication,
-    isTeacher,
     deleteQuiz
   );
 
@@ -52,7 +51,6 @@ quizRouter.put(
   "/submit-quiz/:quizId",
   validateInput(quizIDValidate, "PARAMS"),
   validateInput(studentAnswers, "BODY"),
-  validateInput(),
   authentication,
   submitQuiz
 );
@@ -66,6 +64,6 @@ quizRouter.get(
 );
 
 
-quizRouter.get("/certificate",getCertificate)
+quizRouter.get("/certificate",authentication,getCertificate)
 
 module.exports = quizRouter;

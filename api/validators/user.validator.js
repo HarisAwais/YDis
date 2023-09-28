@@ -29,9 +29,10 @@ const loginValidation = Joi.object({
   password: Joi.string().required(),
 });
 
-const verifiyValidation = Joi.boolean().required();
+const teacherIdValidation = Joi.object({teacherId:Joi.string().required()});
 
-const teacherIdValidation = Joi.string().length(24).hex().required();
+
+const verifiyValidation =  Joi.object({isVerified:Joi.string().length(24).hex().required()});
 
 
 module.exports = {registerValidation,loginValidation,verifiyValidation,teacherIdValidation};

@@ -66,7 +66,7 @@ const subscriptionSchema = new mongoose.Schema(
       paymentStatus: {
         type: String,
         uppercase: true,
-        enum: [PAYMENT.PENDING, PAYMENT.APPROVED], 
+        enum: [PAYMENT.PENDING, PAYMENT.PAID], 
         default: PAYMENT.PENDING, 
       },
 

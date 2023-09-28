@@ -78,8 +78,20 @@ const transferToTeacher = async (chargeId, teacherStripeAccountId, amount, curre
   }
 };
 
-module.exports = transferToTeacher;
+const deletePrices = async (stripeProductId) => {
+  try {
+    const prices = await stripe.prices.list({ product: stripeProductId });
 
+    for (const price of prices.data) {
+      await stripe.prices.update(price.id, { active: false });
+    }
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+};
 
 
 module.exports = {
@@ -87,4 +99,5 @@ module.exports = {
   refundPayment,
   transferToTeacher,
   capturePayment,
+  deletePrices
 };

@@ -5,6 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Socket.io Chat</title>
     <style>
+      /* Style for the entire chat container */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      /* Style for the receiver's input field */
+      #receiver-input {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin: 10px;
+      }
+
+      /* Style for the chat box */
+      #chat-box {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: scroll;
+        margin: 10px;
+      }
+
+      /* Style for the message input field */
+      #message-input {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        margin: 10px;
+      }
+
+      /* Style for the Send button */
+      #send-button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        padding: 5px 10px;
+        cursor: pointer;
+        margin: 10px;
+      }
+
       /* Style for the typing indicator */
       .typing-indicator {
         font-style: italic;
@@ -92,33 +141,31 @@
         }
       });
 
+      // Scroll to the bottom of the chat box
+      function appendMessage(message) {
+        const messageElement = document.createElement("div");
+        messageElement.textContent = message;
+        chatBox.appendChild(messageElement);
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom of the chat box
+      }
 
-        // Scroll to the bottom of the chat box
-        function appendMessage(message) {
-          const messageElement = document.createElement("div");
-          messageElement.textContent = message;
-          chatBox.appendChild(messageElement);
-          chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom of the chat box
+      // Function to handle receiving a new message
+      function handleMessageReceived(message) {
+        appendMessage(message.sender + ": " + message.text);
+      }
+
+      // Function to handle the typing indicator
+      function handleTypingIndicator(data) {
+        if (data.isTyping) {
+          typingIndicator.textContent = "Typing..."; // Show typing indicator
+        } else {
+          typingIndicator.textContent = ""; // Clear typing indicator
         }
+      }
 
-        // Function to handle receiving a new message
-        function handleMessageReceived(message) {
-          appendMessage(message.sender + ": " + message.text);
-        }
-
-        // Function to handle the typing indicator
-        function handleTypingIndicator(data) {
-          if (data.isTyping) {
-            typingIndicator.textContent = "Typing..."; // Show typing indicator
-          } else {
-            typingIndicator.textContent = ""; // Clear typing indicator
-          }
-        }
-
-        // Add event listeners for receiving messages and typing indicators
-        socket.on("messageReceived", handleMessageReceived);
-        socket.on("typing", handleTypingIndicator);
-      
+      // Add event listeners for receiving messages and typing indicators
+      socket.on("messageReceived", handleMessageReceived);
+      socket.on("typing", handleTypingIndicator);
     </script>
   </body>
 </html>

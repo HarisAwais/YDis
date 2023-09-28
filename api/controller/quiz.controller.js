@@ -3,6 +3,12 @@ const {
   generateCertificatePdf,
   calculateScorePercentage,
 } = require("../helper/generatePdf.helper");
+const Subscription = require("../schema/subcription.schema");
+const Quiz = require("../schema/quiz.schema");
+
+
+/*=============================================== CREATE QUIZ =============================================== */
+
 const createQuiz = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
@@ -38,6 +44,7 @@ const createQuiz = async (req, res) => {
   }
 };
 
+/*=============================================== UPDATE QUIZ =============================================== */
 
 const updateQuiz = async (req, res) => {
   try {
@@ -66,14 +73,14 @@ const updateQuiz = async (req, res) => {
   }
 };
 
-// teacher will delete quiz
+// const getCoursesQuiz = async=()=>{
+//   const 
+// }
+/*=============================================== DELETE QUIZ =============================================== */
+
 const deleteQuiz = async (req, res) => {
   try {
     const user = req.decodedToken._id;
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
     const quizId = req.params.quizId;
     const deletedQuiz = await QuizModel.deleteQuiz(quizId, user);
     if (deletedQuiz.status == "SUCCESS") {
@@ -86,14 +93,15 @@ const deleteQuiz = async (req, res) => {
   }
 };
 
+/*=============================================== STUDENT SUBMIT QUIZ =============================================== */
+
 const submitQuiz = async (req, res) => {
   try {
-    const { quizId } = req.params;
+    const  quizId  = req.params.quizId;
     const { answers } = req.body;
     const studentId = req.decodedToken._id;
 
     const quiz = await QuizModel.quizById(quizId);
-
     const score = QuizModel.calculateScore(quiz?.data?.questions, answers);
 
     const studentSubmission = {
@@ -132,7 +140,7 @@ const submitQuiz = async (req, res) => {
   }
 };
 
-//teacher get student who took exam
+/*=============================================== GET THE STUDENT WHO GIVE THE EXAM =============================================== */
 
 const studentsWhoTookQuiz = async (req, res) => {
   try {
@@ -177,13 +185,11 @@ const studentsWhoTookQuiz = async (req, res) => {
   }
 };
 
+/*=============================================== CERTIFICATE FOR USER =============================================== */
+
 const getCertificate = async (req, res) => {
   try {
-    const {studentId} = req.body
-    // console.log(req.decodedToken)
-    // return
-    // const studentId = req.decodedToken._id; 
-
+    const studentId = req.decodedToken._id; 
     const quizData = await QuizModel.getCertificate(studentId);
 
 
@@ -240,5 +246,5 @@ module.exports = {
   deleteQuiz,
   studentsWhoTookQuiz,
   submitQuiz,
-  getCertificate
+  getCertificate,
 };

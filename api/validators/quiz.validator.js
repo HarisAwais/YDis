@@ -15,7 +15,6 @@ const teacherQuestion = Joi.object({
 });
 
 const studentAnswers = Joi.object({
-  studentId: Joi.string().required(),
   answers: Joi.array().items(
     Joi.object({
       questionIndex: Joi.number().integer().min(0).required(),
@@ -26,6 +25,6 @@ const studentAnswers = Joi.object({
   submittedAt: Joi.date().iso().optional(),
 });
 
-const quizIDValidate = Joi.string().alphanum().length(24).hex();
+const quizIDValidate = Joi.object({quizId: Joi.string().alphanum().length(24).hex()});
 
 module.exports = {teacherQuestion,studentAnswers,quizIDValidate};

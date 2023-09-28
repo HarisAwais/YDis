@@ -8,7 +8,6 @@ const zeroSetter = require("../helper/zeroSetter.helper");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const conn = mongoose.connection;
-
 const Subscription = require("../schema/subcription.schema");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -19,6 +18,7 @@ const createSubscription = async (req, res) => {
   let session = await conn.startSession();
   session.startTransaction();
   try {
+    const { io } = require("../../socket");
     const opts = { session };
 
     const { _courseId, classStartTime, classEndTime } = req.body;
@@ -94,6 +94,13 @@ const createSubscription = async (req, res) => {
     if (newSubscription) {
       await session.commitTransaction();
       await session.endSession();
+      const teacherIdentifier = course.data.teacherId; 
+
+      io.to(`teacher:${teacherIdentifier}`).emit('new-subscription', {
+        message: 'New subscription created for your course!',
+        subscription: newSubscription.data,
+      });
+    
       return res.status(201).json({
         message: "Subscription created successfully.",
         data: newSubscription,
@@ -257,13 +264,7 @@ const updateSubscriptionStatus = async (req, res) => {
 const cancelSubscription = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
-
-    // Check if the student is authenticated
-    if (!req.decodedToken._id) {
-      return res.status(403).json({
-        error: "Not Authentic User.",
-      });
-    }
+    const studentId = req.decodedToken._id
 
     const subscription = await SubscriptionModel.getSubscriptionById(
       subscriptionId
@@ -271,16 +272,26 @@ const cancelSubscription = async (req, res) => {
 
     // Check if the subscription status is 'SUCCESS'
     if (subscription.status === "SUCCESS") {
-      if (subscription.data?._studentId.toString() !== req.decodedToken._id) {
+      if (subscription.data?._studentId.toString() !== studentId) {
         return res.status(403).json({
           error: "Subscription does not belong to this student.",
         });
       }
 
+      const paymentIntentId = subscription.data?.stripeAccount.paymentIntentId;
+
+      if (!paymentIntentId) {
+        return res.status(500).json({
+          message: "Payment Intent ID is missing in the subscription data.",
+        });
+      }
+
       // Attempt to cancel the subscription in Stripe
       try {
-        const canceledSubscription = await stripe.products.del(subscription.data?.stripeAccount.subscriptionId);
 
+         await stripe.paymentIntents.cancel(
+          paymentIntentId
+        );
 
         // canceledSubscription object will contain information about the canceled subscription in Stripe
       } catch (stripeError) {
@@ -326,6 +337,7 @@ const cancelSubscription = async (req, res) => {
 const teacherSubscriptions = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
+    console.log(teacherId)
     const result = await SubscriptionModel.teacherSubscriptions(teacherId);
 
     if (result.status == "SUCCESS") {
@@ -359,20 +371,34 @@ const studentSubscription = async (req, res) => {
   }
 };
 
-/*============================ Marked CourseStat and Module Completed By Teacher ============================*/
+/*============================ Marked Which CourseStat and Module Completed ============================*/
 
 const updateCourseStat = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
     const { moduleId, topicId, isCompleted } = req.body;
+    const {_id} = req.decodedToken
+    console.log(_id)
+    const subscriptionFound = await SubscriptionModel.getSubscriptionById(subscriptionId)
 
+    if(!subscriptionFound){
+      return re.status(404).send({
+        message:"Subcription Not Found"
+      })
+    }
+
+    if(subscriptionFound?.data._studentId.toString()!==_id.toString()){
+      return res.status(404).send({
+        message:'Unauthorized! You do not have have permission to update the course stata'
+      })
+    }
+    
     const result = await SubscriptionModel.completedTopics(
       subscriptionId,
       moduleId,
       topicId,
       isCompleted
     );
-
     if (result.status === "SUCCESS") {
       res.status(201).json({
         message: "Topic marked as completed",

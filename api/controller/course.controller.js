@@ -1,8 +1,10 @@
+const { deletePrices } = require("../helper/stripe.helper");
 const CourseModel = require("../model/course.model");
 const UserModel = require("../model/user.model");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-//to create course
+/*=============================================== CREATE COURSE BY TEACHER =============================================== */
+
 const createCourse = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
@@ -21,26 +23,26 @@ const createCourse = async (req, res) => {
       ...req.body,
     };
 
-    const generatedId = req.generatedId
+    const generatedId = req.generatedId;
     // Create the product in Stripe
     const stripeProduct = await stripe.products.create({
-      id:generatedId,
+      id: generatedId,
       name: newCourse.name,
       description: newCourse.description,
     });
 
     const stripePrice = await stripe.prices.create({
       product: stripeProduct.id,
-      unit_amount: newCourse.fee * 100, 
+      unit_amount: newCourse.fee * 100,
       currency: "usd",
     });
-
     newCourse.stripeProduct = {
       productId: stripeProduct.id,
       productPrice: stripePrice.id,
     };
 
     const savedCourse = await CourseModel.saveCourse(generatedId, newCourse);
+    console.log(savedCourse._id);
 
     if (savedCourse.status == "SUCCESS") {
       res.status(201).json({
@@ -60,7 +62,124 @@ const createCourse = async (req, res) => {
     });
   }
 };
-//teacher get courses
+
+/*=============================================== UPDATE COURSE BY TEACHER =============================================== */
+
+const updateCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const teacherId = req.decodedToken._id;
+    const courseUpdateData = req.body;
+
+    const courseFound = await CourseModel.getCourseById(courseId);
+    if (courseFound.status == "FAILED") {
+      return res.status(404).send({
+        message: "Course Not Found",
+      });
+    }
+
+    if (courseFound?.data.teacherId.toString() !== teacherId.toString()) {
+      return res.status(403).send({
+        message:
+          "Unauthorized: You do not have permission to update this course.",
+      });
+    }
+
+    // Update the course details in your database
+    const updateResult = await CourseModel.updateCourse(
+      teacherId,
+      courseId,
+      courseUpdateData
+    );
+
+    if (!updateResult) {
+      return res.status(500).json({
+        message: "SORRY: Something went wrong while updating the course",
+      });
+    }
+
+    // Update the corresponding Stripe product and create a new price
+    const stripeProduct = await stripe.products.update(
+      courseFound.data.stripeProduct.productId,
+      {
+        name: courseUpdateData.name,
+        description: courseUpdateData.description,
+      }
+    );
+
+    const stripePrice = await stripe.prices.create({
+      product: courseFound.data.stripeProduct.productId,
+      unit_amount: courseUpdateData.fee * 100,
+      currency: "usd",
+    });
+
+    // Update the course record with the new Stripe price ID
+    courseFound.data.stripeProduct.productPrice = stripePrice.id;
+    await CourseModel.updateCourse(courseId, courseFound.data.stripeProduct);
+
+    return res.status(200).json({
+      message: "Course updated successfully",
+      data: {
+        course: updateResult.data,
+        stripeProduct: stripeProduct,
+        stripePrice: stripePrice,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "OOPS! Sorry Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+/*=============================================== DELETE COURSE BY TEACHER =============================================== */
+
+const deleteCourse = async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    const teacherId = req.decodedToken._id;
+    console.log(teacherId);
+
+    const courseFound = await CourseModel.getCourseById(courseId);
+    if (courseFound.status == "FAILED") {
+      return res.status(404).send({
+        message: "Course Not Found",
+      });
+    }
+
+    if (courseFound?.data.teacherId.toString() !== teacherId.toString()) {
+      return res.status(403).send({
+        message:
+          "Unauthorized: You do not have permission to delete this course.",
+      });
+    }
+    const stripeProduct = courseFound.data.stripeProduct;
+   
+
+    const deleteResult = await CourseModel.deleteCourse(teacherId, courseId);
+
+    if (deleteResult.status === "SUCCESS") {
+      return res.status(200).json({
+        message: deleteResult.message,
+      });
+    } else {
+      return res.status(500).json({
+        message: "SORRY: Something went wrong",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "OOPS!Sorry Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+/*=============================================== GET TEACHER OWN COURSES =============================================== */
+
 const getTeacherCourses = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
@@ -90,6 +209,8 @@ const getTeacherCourses = async (req, res) => {
   }
 };
 
+/*=============================================== GET TEACHER OWN COURSES =============================================== */
+
 const getAllCourse = async (req, res) => {
   try {
     const course = await CourseModel.getAllCourse();
@@ -117,6 +238,8 @@ const getAllCourse = async (req, res) => {
   }
 };
 
+/*=============================================== LIST ALL COURSES OF MY WEBSITE =============================================== */
+
 const getSingleCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -139,64 +262,8 @@ const getSingleCourse = async (req, res) => {
   }
 };
 
-const deleteCourse = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    const teacherId = req.decodedToken._id;
+/*=============================================== CREATE REVIEW OF COURSE =============================================== */
 
-    const deleteResult = await CourseModel.deleteCourse(teacherId, courseId);
-    
-
-    if (deleteResult.status === "SUCCESS") {
-      return res.status(200).json({
-        message: deleteResult.message,
-      });
-    } else {
-      return res.status(500).json({
-        message: "SORRY: Something went wrong",
-      });
-    }
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "OOPS!Sorry Something went wrong",
-      error: error.message,
-    });
-  }
-};
-
-const updateCourse = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-    const teacherId = req.decodedToken._id;
-    const courseUpdateData = req.body;
-
-    const updateResult = await CourseModel.updateCourse(
-      teacherId,
-      courseId,
-      courseUpdateData
-    );
-
-    if (updateResult) {
-      return res.status(200).json({
-        message: updateResult.message,
-        data: updateResult.data,
-      });
-    } else {
-      return res.status(500).json({
-        message: "SORRY: Something went wrong",
-      });
-    }
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      message: "OOPS! Sorry Something went wrong",
-      error: error.message,
-    });
-  }
-};
-
-//create gig review
 const createReview = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -219,7 +286,11 @@ const createReview = async (req, res) => {
     let updatedGig;
 
     if (isReviewExist) {
-      updatedGig = await CourseModel.updateExistingReview(courseId, _id, req.body);
+      updatedGig = await CourseModel.updateExistingReview(
+        courseId,
+        _id,
+        req.body
+      );
     } else {
       updatedGig = await CourseModel.addNewReview(
         courseId,
@@ -246,7 +317,8 @@ const createReview = async (req, res) => {
   }
 };
 
-//get course review
+/*=============================================== GET REVIEW OF COURSE =============================================== */
+
 const getCourseReviews = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -268,13 +340,15 @@ const getCourseReviews = async (req, res) => {
   }
 };
 
-// Delete Review
+/*=============================================== DELETE REVIEW OF COURSE =============================================== */
+
 const deleteReview = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { _id } = req.decodedToken;
 
     const deleteResult = await CourseModel.deleteReview(courseId, _id);
+
     if (deleteResult) {
       return res.status(200).json({
         message: "SUCCESS",
@@ -292,6 +366,7 @@ const deleteReview = async (req, res) => {
   }
 };
 
+/*=============================================== LIST COURSE BY USING PAGINATION =============================================== */
 
 const courseList = async (req, res) => {
   try {
@@ -299,7 +374,7 @@ const courseList = async (req, res) => {
     const page = req.params.page ? parseInt(req.params.page) : 1;
     const courses = await CourseModel.listCourse(page, perPage);
 
-    if (course) {
+    if (courses) {
       return res.status(200).json({
         status: "SUCCESS",
         courses: courses,
@@ -319,11 +394,20 @@ const courseList = async (req, res) => {
   }
 };
 
+/*=============================================== SEARCHING =============================================== */
+
 const searchCourses = async (req, res) => {
   try {
-    const { category, maxPrice, sortBy } = req.query;
+    const { category, maxPrice, sortBy, name, page, pageSize } = req.query;
 
-    const courses = await CourseModel.searchCourses(category, maxPrice, sortBy);
+    const courses = await CourseModel.searchCoursesModel(
+      category,
+      maxPrice,
+      sortBy,
+      name,
+      parseInt(page),
+      parseInt(pageSize)
+    );
 
     if (courses) {
       return res.status(200).json({
@@ -339,11 +423,10 @@ const searchCourses = async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).send({
-      status: "OOPS!Sorry something went wrong",
+      status: "OOPS! Sorry something went wrong",
     });
   }
 };
-
 
 module.exports = {
   createCourse,
