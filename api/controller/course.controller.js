@@ -1,4 +1,3 @@
-const { deletePrices } = require("../helper/stripe.helper");
 const CourseModel = require("../model/course.model");
 const UserModel = require("../model/user.model");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);

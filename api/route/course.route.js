@@ -18,7 +18,7 @@ const { isTeacher } = require("../middleware/authorization.middleware");
 const { validateInput } = require("../middleware/validateInput.middleware");
 const {courseValidate, courseIdValidate, ratingCommentValidate} = require("../validators/course.validator");
 const courseRouter = express.Router();
-
+/*=============================================== ROUTE FOR CREATE COURSE ========================================================*/
 courseRouter.post(
   "/create",
   generateId,
@@ -28,7 +28,7 @@ courseRouter.post(
   createCourse
 );
 
-// update course by teacher
+/*=============================================== ROUTE FOR UPDATE COURSE STATUS ========================================================*/
 courseRouter.put(
   "/update-course/:courseId",
   authentication,
@@ -37,38 +37,48 @@ courseRouter.put(
   updateCourse
   );
 
-  // deleteCourse by teacher
-  courseRouter.delete("/delete/:courseId",
+/*=============================================== ROUTE FOR DELETE COURSE ========================================================*/
+
+courseRouter.delete("/delete/:courseId",
   validateInput(courseIdValidate,"PARAMS"),
   authentication,
   deleteCourse);
     
-  //route for teacher to get his oen courses
+/*=============================================== ROUTE FOR GET TEACHER COURSE ========================================================*/
+
 courseRouter.get("/teacher-course", authentication, getTeacherCourses);
 
-// list all courses to user
-courseRouter.get("/list-course", getAllCourse);
-courseRouter.get("/single-course/:courseId", getSingleCourse);
-// courseRouter.get("/top-courses",)
+/*=============================================== ROUTE FOR LIST ALL COURSES  ========================================================*/
 
-//about the reviews
+courseRouter.get("/list-course", getAllCourse);
+
+/*=============================================== ROUTE FOR GET SINGLE COURSE ========================================================*/
+
+courseRouter.get("/single-course/:courseId", getSingleCourse);
+
+/*=============================================== ROUTE FOR CREATE REVIEW OF COURSE ========================================================*/
 courseRouter.patch("/review/:courseId",
 validateInput(courseIdValidate,"PARAMS"),
 validateInput(ratingCommentValidate,"BODY"),
 authentication,
 createReview);
 
-//get product reviews
+/*=============================================== ROUTE FOR GET REVIEW OF COURSE ========================================================*/
+
 courseRouter.get("/course-review/:courseId",
 validateInput(courseIdValidate,"PARAMS"),
 getCourseReviews);
-//
+
+///*=============================================== ROUTE FOR DELETE COURSE ========================================================*/
+
 courseRouter.delete("/delete-review/:courseId", 
 validateInput(courseIdValidate,"PARAMS"),
 authentication,
 deleteReview);
+/*=============================================== ROUTE FOR PAGINATION COURSE ========================================================*/
 
 courseRouter.get("/course-list", courseList);
+/*=============================================== ROUTE FOR SEARCHING COURSE ========================================================*/
 
 courseRouter.post("/search", searchCourses);
 

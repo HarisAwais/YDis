@@ -25,9 +25,15 @@ uploadProfile,
 validateInput(registerValidation,"BODY"),
 registerUser);
 
+/*================================================= ROUTE Login User====================================================== */
+
 userRouter.post("/login",validateInput(loginValidation,"BODY"), loginUser),
 
+/*================================================= ROUTE Logout User====================================================== */
+
 userRouter.post("/logout", authentication, logoutUser);
+
+/*================================================= ROUTE Verify User====================================================== */
 
 userRouter.patch(
   "/update-teacher/:teacherId",
@@ -37,14 +43,23 @@ userRouter.patch(
   verifyTeacher
 );
 
+/*================================================= ROUTE See All Teacher ====================================================== */
 
 userRouter.get("/get-teachers", authentication, isAdmin, getAllTeacher);
 
+/*================================================= ROUTE See All Student ====================================================== */
+
 userRouter.get("/get-students", authentication, isAdmin, getAllStudent);
+
+/*================================================= ROUTE See All Teacher stat ====================================================== */
 
 userRouter.get("/teacher-detail",authentication,isAdmin,teacherDetail)
 
+/*================================================= ROUTE See All Teacher Student Stat ====================================================== */
+
 userRouter.get("/student-detail",authentication,isAdmin,studentDetail)
+/*================================================= ROUTE Create Stripe Account ====================================================== */
+
 userRouter.post("/create-stripe-account",createStripeAccount)
 
 module.exports = userRouter;
