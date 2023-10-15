@@ -61,28 +61,32 @@ const refundPayment = async (paymentIntentId) => {
   }
 };
 
-const transferToTeacher = async (chargeId, teacherStripeAccountId, amount, currency) => {
+const transferPaymentToTeacher = async (teacherStripeAccountId, amount) => {
   try {
+    // Create a transfer to the teacher's Stripe account
+
     const transfer = await stripe.transfers.create({
-      amount,            
-      currency,          
-      destination: teacherStripeAccountId, 
-      description: "Payment for course",
-      source_transaction: chargeId, 
+      amount: amount, // The amount to transfer in cents
+      currency: "usd", 
+      destination: teacherStripeAccountId, // Teacher's Stripe account ID
     });
 
-    return transfer;
+    // Check if the transfer was successful
+    if (transfer.status === "completed") {
+      return { status: "SUCCESS", transferId: transfer.id };
+    } else {
+      return { status: "FAILED", error: "Transfer failed" };
+    }
   } catch (error) {
-    console.error("Error transferring payment to teacher:", error);
-    throw error;
+    console.error("Transfer error:", error);
+    return { status: "FAILED", error: "Transfer failed" };
   }
 };
-
 
 
 module.exports = {
   createPaymentIntent,
   refundPayment,
-  transferToTeacher,
+  transferPaymentToTeacher,
   capturePayment,
 };

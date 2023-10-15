@@ -16,7 +16,7 @@ io.on("connection", async (socket) => {
     // Fetch chat messages from MongoDB
     const chat_of_user = await Chat.findOne({
       participants: userId,
-    }).populate("messages.sender messages.receiver");
+    });
 
     if (chat_of_user) {
       // Send the chat history to the user
@@ -50,9 +50,6 @@ io.on("connection", async (socket) => {
       };
 
       chat.messages.push(newMessage);
-
-      // Mark the message as not seen by default
-      newMessage.seen = false;
 
       await chat.save();
 

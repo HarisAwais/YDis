@@ -141,7 +141,6 @@ const subscribeCourse = async (courseId, studentId) => {
 
 const calculateScore = (questions, submittedAnswers) => {
   let totalScore = 0;
-  const questionScores = [];
 
   questions.forEach((question, index) => {
     const correctOption = question.correctOption;
@@ -150,19 +149,10 @@ const calculateScore = (questions, submittedAnswers) => {
     if (submittedOption !== undefined && submittedOption === correctOption) {
       totalScore++;
     }
-
-    questionScores.push({
-      questionText: question.questionText,
-      selectedOption: submittedOption,
-      correctOption: correctOption,
-      isCorrect:
-        submittedOption !== undefined && submittedOption === correctOption,
-    });
   });
 
   return {
     totalScore: totalScore,
-    questionScores: questionScores,
   };
 };
 
@@ -320,6 +310,31 @@ const getCertificate = async (studentId) => {
   }
 };
 
+const listQuizez = async(createdBy)=>{
+try {
+  const quiz = await Quiz.findOne({createdBy:createdBy})
+  .select('-studentAnswers') 
+  .lean()
+  .exec();
+  if(quiz){
+    return{
+      status:"SUCCESS",
+      data:quiz
+    }
+  }
+  else{
+    return {
+      status:"FAILED"
+    }
+  }
+} catch (error) {
+  return {
+    status: "OOPS! Something went wrong",
+    error: error.message,
+  };
+}
+  
+}
 module.exports = {
   savedQuiz,
   updateQuiz,
@@ -330,4 +345,5 @@ module.exports = {
   submitQuizToDB,
   getStudentsWhoTookQuiz,
   getCertificate,
+  listQuizez
 };

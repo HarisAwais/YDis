@@ -142,11 +142,10 @@
           classEndTime,
           studentId,
         };
-        console.log(requestBody);
 
         try {
           const response = await fetch(
-            "/api/v1/subscription/create-subscription",
+            "http://localhost:5000/api/v1/subscription/create-subscription",
             {
               method: "POST",
               headers: {

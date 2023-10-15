@@ -105,9 +105,9 @@
 
       socket.on("typing", (data) => {
         if (data.isTyping) {
-          typingIndicator.textContent = "Typing..."; // Show typing indicator
+          typingIndicator.textContent = "Typing..."; 
         } else {
-          typingIndicator.textContent = ""; // Clear typing indicator
+          typingIndicator.textContent = "";
         }
       });
 
@@ -118,15 +118,15 @@
       messageInput.addEventListener("input", () => {
         const receiverId = receiverInput.value.trim();
         if (messageInput.value.trim() !== "") {
-          socket.emit("typing", { receiverId, isTyping: true }); // Send typing indicator
+          socket.emit("typing", { receiverId, isTyping: true });
         } else {
-          socket.emit("typing", { receiverId, isTyping: false }); // Send stopped typing indicator
+          socket.emit("typing", { receiverId, isTyping: false });
         }
       });
 
       sendButton.addEventListener("click", () => {
-        const receiverId = receiverInput.value.trim(); // Get the receiver's ID from the input field and trim whitespace
-        const messageText = messageInput.value.trim(); // Trim whitespace from the message
+        const receiverId = receiverInput.value.trim(); 
+        const messageText = messageInput.value.trim(); 
 
         if (receiverId && messageText) {
           const message = {

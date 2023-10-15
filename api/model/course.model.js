@@ -74,9 +74,11 @@ const getTeacherCourses = async (teacherId) => {
 };
 
 // get get by id
-const getCourseById = async (_id) => {
+const getCourseById = async (_courseId) => {
   try {
-    const course = await Course.findById(_id).lean().exec();
+    console.log(_courseId)
+
+    const course = await Course.findById({_id:_courseId}).lean().exec();
     if (course) {
       return {
         status: "SUCCESS",

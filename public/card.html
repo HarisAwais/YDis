@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Card Payment</title>
+    <!-- Include Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <!-- Add CSS Styles -->
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      #payment-form {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+      }
+
+      #card-element {
+        margin-bottom: 20px;
+      }
+
+      #card-errors {
+        color: red;
+        font-size: 16px;
+        margin-top: 10px;
+      }
+
+      button[type="submit"] {
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      button[type="submit"]:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Enter Card Details</h1>
+
+    <!-- Hidden input field to store the teacher's ID -->
+    <input id="teacher-id" value="6514f9f589304f9d5b232fa3" />
+    <!-- Replace with the actual teacher's ID -->
+
+    <form id="payment-form">
+      <!-- Card Element -->
+      <div id="card-element">
+        <!-- A Stripe Element will be inserted here. -->
+      </div>
+
+      <!-- Used to display form errors. -->
+      <div id="card-errors" role="alert"></div>
+
+      <button type="submit">Submit Payment</button>
+    </form>
+
+    <script>
+      // Set your publishable key
+      const stripe = Stripe(
+        "pk_test_51NpSaDC44tKvGwWAmPY1VSmEInHVgwlWEEX1qX14KVswED2GUneyVFGGukzhSGCKpF3t2QzuiSaoEIFqYvIEn8bj005Q6sNulT"
+      );
+
+      // Create an instance of Elements
+      const elements = stripe.elements();
+
+      // Create a Card Element and mount it to the card-element div
+      const card = elements.create("card");
+      card.mount("#card-element");
+
+      // Get the teacher's ID from the hidden input field
+      const teacherId = document.getElementById("teacher-id").value;
+
+      // Handle form submission
+      const form = document.getElementById("payment-form");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        // Create a PaymentMethod and confirm the payment
+        const { paymentMethod, error } = await stripe.createPaymentMethod({
+          type: "card",
+          card: card,
+        });
+
+        if (error) {
+          // Display error to your user
+          const errorElement = document.getElementById("card-errors");
+          errorElement.textContent = error.message;
+        } else {
+          // Send the paymentMethod.id and teacherId to your server
+          fetch("http://localhost:5000/api/v1/user/create-stripe-account", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              paymentMethodId: paymentMethod.id,
+              userId: teacherId, // Pass the teacher's ID here
+            }),
+          })
+            .then((response) => {
+              return response.json();
+            })
+            .then((data) => {
+              // Handle the response from your server (success or error)
+              console.log(data);
+            });
+        }
+      });
+    </script>
+  </body>
+</html>

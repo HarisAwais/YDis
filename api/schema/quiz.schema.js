@@ -1,4 +1,3 @@
-const { boolean } = require("joi");
 const mongoose = require("mongoose");
 
 const quizSchema = new mongoose.Schema(
@@ -39,6 +38,7 @@ const quizSchema = new mongoose.Schema(
           {
             questionIndex: { type: Number, required: true },
             selectedOption: { type: Number },
+
           },
         ],
         score: { type: Number },

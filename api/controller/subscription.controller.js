@@ -3,6 +3,7 @@ const CourseModel = require("../model/course.model");
 const {
   createPaymentIntent,
   capturePayment,
+  transferPaymentToTeacher,
 } = require("../helper/stripe.helper");
 const zeroSetter = require("../helper/zeroSetter.helper");
 const moment = require("moment");
@@ -23,6 +24,7 @@ const createSubscription = async (req, res) => {
 
     const { _courseId, classStartTime, classEndTime } = req.body;
     // const studentId = req.decodedToken._id;
+   
 
     const studentId = req.body.studentId;
     const paymentMethodId = req.body.paymentMethodId;
@@ -32,11 +34,10 @@ const createSubscription = async (req, res) => {
 
     // Fetch the course document
     const course = await CourseModel.getCourseById(_courseId);
-
+      
     if (!course) {
       return res.status(404).json({ message: "Course not found." });
     }
-
     const paymentAmount = Math.round(course?.data?.fee * 100);
 
     // Create a Payment Intent with Stripe
@@ -94,13 +95,13 @@ const createSubscription = async (req, res) => {
     if (newSubscription) {
       await session.commitTransaction();
       await session.endSession();
-      const teacherIdentifier = course.data.teacherId; 
+      const teacherIdentifier = course.data.teacherId;
 
-      io.to(`teacher:${teacherIdentifier}`).emit('new-subscription', {
-        message: 'New subscription created for your course!',
+      io.to(`teacher:${teacherIdentifier}`).emit("new-subscription", {
+        message: "New subscription created for your course!",
         subscription: newSubscription.data,
       });
-    
+
       return res.status(201).json({
         message: "Subscription created successfully.",
         data: newSubscription,
@@ -112,6 +113,8 @@ const createSubscription = async (req, res) => {
       });
     }
   } catch (error) {
+    console.error("Error:", error);
+
     await session.abortTransaction();
     await session.endSession();
     return res.status(500).json({ message: "SORRY! Something went wrong." });
@@ -264,7 +267,7 @@ const updateSubscriptionStatus = async (req, res) => {
 const cancelSubscription = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
-    const studentId = req.decodedToken._id
+    const studentId = req.decodedToken._id;
 
     const subscription = await SubscriptionModel.getSubscriptionById(
       subscriptionId
@@ -288,10 +291,7 @@ const cancelSubscription = async (req, res) => {
 
       // Attempt to cancel the subscription in Stripe
       try {
-
-         await stripe.paymentIntents.cancel(
-          paymentIntentId
-        );
+        await stripe.paymentIntents.cancel(paymentIntentId);
 
         // canceledSubscription object will contain information about the canceled subscription in Stripe
       } catch (stripeError) {
@@ -337,7 +337,6 @@ const cancelSubscription = async (req, res) => {
 const teacherSubscriptions = async (req, res) => {
   try {
     const teacherId = req.decodedToken._id;
-    console.log(teacherId)
     const result = await SubscriptionModel.teacherSubscriptions(teacherId);
 
     if (result.status == "SUCCESS") {
@@ -377,22 +376,24 @@ const updateCourseStat = async (req, res) => {
   try {
     const { subscriptionId } = req.params;
     const { moduleId, topicId, isCompleted } = req.body;
-    const {_id} = req.decodedToken
-    console.log(_id)
-    const subscriptionFound = await SubscriptionModel.getSubscriptionById(subscriptionId)
+    const { _id } = req.decodedToken;
+    const subscriptionFound = await SubscriptionModel.getSubscriptionById(
+      subscriptionId
+    );
 
-    if(!subscriptionFound){
+    if (!subscriptionFound) {
       return re.status(404).send({
-        message:"Subcription Not Found"
-      })
+        message: "Subcription Not Found",
+      });
     }
 
-    if(subscriptionFound?.data._studentId.toString()!==_id.toString()){
+    if (subscriptionFound?.data._studentId.toString() !== _id.toString()) {
       return res.status(404).send({
-        message:'Unauthorized! You do not have have permission to update the course stata'
-      })
+        message:
+          "Unauthorized! You do not have have permission to update the course stata",
+      });
     }
-    
+
     const result = await SubscriptionModel.completedTopics(
       subscriptionId,
       moduleId,

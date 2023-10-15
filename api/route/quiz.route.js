@@ -11,6 +11,8 @@ const {
   submitQuiz,
   studentsWhoTookQuiz,
   getCertificate,
+  listQuiz,
+  shareQuizLink,
   
 } = require("../controller/quiz.controller");
 const { validateInput } = require("../middleware/validateInput.middleware");
@@ -31,6 +33,19 @@ quizRouter.post(
   isTeacher,
   createQuiz
 ),
+
+//list quiz
+quizRouter.get("/list-quiz",
+authentication,
+listQuiz
+)
+
+//share quiz
+quizRouter.get("/share/:quizId",
+authentication,
+shareQuizLink
+)
+
   //Teacher update Quiz
   quizRouter.patch(
     "/update-quiz/:quizId",
@@ -63,7 +78,9 @@ quizRouter.get(
   studentsWhoTookQuiz
 );
 
-
+//student get certificate
 quizRouter.get("/certificate",authentication,getCertificate)
+
+
 
 module.exports = quizRouter;

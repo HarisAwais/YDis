@@ -1,11 +1,9 @@
+const crypto = require('crypto');
+
 const QuizModel = require("../model/quiz.model");
 const {
   generateCertificatePdf,
-  calculateScorePercentage,
 } = require("../helper/generatePdf.helper");
-const Subscription = require("../schema/subcription.schema");
-const Quiz = require("../schema/quiz.schema");
-
 
 /*=============================================== CREATE QUIZ =============================================== */
 
@@ -33,17 +31,74 @@ const createQuiz = async (req, res) => {
 
     // Save the quiz to the database
     const createdQuiz = await QuizModel.savedQuiz(newQuiz);
+    if(createdQuiz.status=="SUCCESS"){
 
     res.status(201).json({
       message: "Quiz created successfully.",
       quiz: createdQuiz,
-    });
+    })
+  }
+  else{
+    res.status(422).json({
+      message: "Sorry!Somthing went wrong.",
+     
+    })
+  }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to create quiz." });
   }
 };
 
+/*=============================================== LIST QUIZEZ TO TEACHER =============================================== */
+
+const listQuiz = async(req,res)=>{
+  try {
+    const createdBy = req.decodedToken._id;
+    console.log(createdBy)
+    
+    const list_quiz= await QuizModel.listQuizez(createdBy)
+    if(list_quiz.status=="SUCCESS"){
+      return res.status(200).send({
+        data:list_quiz?.data
+      }) 
+  }
+  else{
+    return res.status(404).send({
+      message:"No Quiz Found"
+    })
+  }
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send({
+      error:"SORRY!Something went wrong"
+    })
+  }
+}
+/*=============================================== LINK SHARE TO STUDENT =============================================== */
+
+const shareQuizLink = async(req,res)=>{
+  
+  try {
+    const quizId = req.params.quizId;
+    const quiz = await QuizModel.quizById(quizId);
+  
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+    const uniqueIdentifier = quizId;
+
+    const randomString = crypto.randomBytes(10).toString('hex');
+
+    // Combine the unique identifier and random string to create the link
+    const quizUrl = `/quiz/${uniqueIdentifier}/${randomString}`;
+
+    res.json({ message: 'Quiz link generated', quizUrl });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+
+  }
+}
 /*=============================================== UPDATE QUIZ =============================================== */
 
 const updateQuiz = async (req, res) => {
@@ -73,9 +128,6 @@ const updateQuiz = async (req, res) => {
   }
 };
 
-// const getCoursesQuiz = async=()=>{
-//   const 
-// }
 /*=============================================== DELETE QUIZ =============================================== */
 
 const deleteQuiz = async (req, res) => {
@@ -102,6 +154,27 @@ const submitQuiz = async (req, res) => {
     const studentId = req.decodedToken._id;
 
     const quiz = await QuizModel.quizById(quizId);
+    console.log(studentId)
+    if(!quiz){
+      return res.status(404).send({
+        message:"SORRY! No quiz found"
+      })
+    }
+    const existingSubmission = quiz.data?.studentAnswers.find(submission => submission.studentId.toString() === studentId);
+    if (existingSubmission) {
+      return res.status(403).send({
+        message: "You have already submitted this quiz and cannot submit it again.",
+      });
+    }
+    
+    // Check if the quiz is within the time window
+    const currentTime = new Date();
+    if (currentTime < quiz?.data?.startTime || currentTime > quiz?.data?.endTime) {
+      return res.status(403).send({
+        message: "The quiz is currently not available for submission.",
+      });
+    }
+
     const score = QuizModel.calculateScore(quiz?.data?.questions, answers);
 
     const studentSubmission = {
@@ -135,7 +208,7 @@ const submitQuiz = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send({
-      message: "Internal server error",
+      message: "SORRY!Something went wrong",
     });
   }
 };
@@ -238,8 +311,6 @@ const getCertificate = async (req, res) => {
 };
 
 
-
-
 module.exports = {
   createQuiz,
   updateQuiz,
@@ -247,4 +318,7 @@ module.exports = {
   studentsWhoTookQuiz,
   submitQuiz,
   getCertificate,
+  listQuiz,
+  shareQuizLink
 };
+
